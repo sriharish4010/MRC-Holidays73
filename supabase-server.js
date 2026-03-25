@@ -1,8 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import nodemailer from 'nodemailer';
-import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
 import redis from 'redis';
 import jwt from 'jsonwebtoken';
@@ -59,12 +57,6 @@ if (process.env.REDIS_URL) {
         console.warn('Redis client setup failed, continuing without cache');
     }
 }
-
-// Multer Setup for memory storage
-const upload = multer({ 
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
-});
 
 // WebSocket Server (Real-time)
 const wss = new WebSocketServer({ server: httpServer });
@@ -249,25 +241,26 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(400).json({ error: 'Username/email and password required' });
         }
 
-        console.log('🔍 Authenticating user:', username);
-
         let user = null;
 
-        // Try username lookup first
-        const { data: usernameUser } = await supabaseAdmin
+        // Try email lookup first (since most accounts were created with email)
+        const { data: emailUser } = await supabase
             .from('users')
             .select('*')
-            .eq('username', username);
+            .eq('email', username);
 
-        if (usernameUser && usernameUser.length > 0) {
-            user = usernameUser[0];
+        if (emailUser && emailUser.length > 0) {
+            user = emailUser[0];
         } else {
-            // If not found by username, try email
-            const { data: emailUser } = await supabaseAdmin
+            // If not found by email, try username lookup
+            const { data: usernameUser } = await supabase
                 .from('users')
                 .select('*')
-                .eq('email', username);
-            if (emailUser && emailUser.length > 0) user = emailUser[0];
+                .eq('username', username);
+
+            if (usernameUser && usernameUser.length > 0) {
+                user = usernameUser[0];
+            }
         }
 
         // No user found
@@ -285,20 +278,15 @@ app.post('/api/auth/login', async (req, res) => {
 
         // Generate JWT
         const token = jwt.sign(
-            { id: user.id, username: user.username, role: user.role },
+            { id: user.id, email: user.email, role: user.role },
             process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRATION || '24h' },
+            { expiresIn: process.env.JWT_EXPIRATION },
         );
 
-        // Cache user token (optional)
-        if (redisConnected) {
-            await setCache(`token:${user.id}`, token, 86400);
-        }
+        // Cache user token
+        await setCache(`token:${user.id}`, token, 86400);
 
-        res.json({ 
-            user: { id: user.id, username: user.username, name: user.name, role: user.role }, 
-            token 
-        });
+        res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role }, token });
     } catch (err) {
         console.error('Login error:', err);
         res.status(500).json({ error: err.message });
@@ -345,39 +333,18 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 // Get all vehicles (with real-time cache)
 app.get('/api/vehicles', cacheMiddleware, async (req, res) => {
     try {
-        const { data: vehicles, error: vError } = await supabase
+        const { data: vehicles, error } = await supabase
             .from('vehicles')
             .select('*')
-            .order('created_at', { ascending: false });
+            .eq('status', 'available');
 
-        if (vError) throw vError;
-
-        const { data: mData, error: mError } = await supabaseAdmin
-            .from('vehicle_media')
-            .select('*');
-
-        let media = [];
-        if (!mError) {
-            media = mData || [];
-            console.log(`Successfully fetched ${media.length} media items from table`);
-        } else if (mError.code === 'PGRST205') {
-            console.warn('vehicle_media table missing, falling back to features.media');
-        } else {
-            throw mError;
-        }
-
-        const vehiclesWithMedia = vehicles.map(v => ({
-            ...v,
-            vehicle_media: (media.length > 0) 
-                ? media.filter(m => m.vehicle_id === v.id)
-                : (v.features?.media || [])
-        }));
+        if (error) throw error;
 
         // Cache for 5 minutes
         const cacheKey = `GET:/api/vehicles`;
-        await setCache(cacheKey, vehiclesWithMedia, 300);
+        await setCache(cacheKey, vehicles, 300);
 
-        res.json(vehiclesWithMedia);
+        res.json(vehicles);
     } catch (err) {
         console.error('Get vehicles error:', err);
         res.status(500).json({ error: err.message });
@@ -387,255 +354,20 @@ app.get('/api/vehicles', cacheMiddleware, async (req, res) => {
 // Get vehicle by ID
 app.get('/api/vehicles/:id', async (req, res) => {
     try {
-        const { data: vehicle, error: vError } = await supabase
+        const { data: vehicle, error } = await supabase
             .from('vehicles')
             .select('*')
             .eq('id', req.params.id)
             .single();
 
-        if (vError) throw vError;
-
-        const { data: mData, error: mError } = await supabaseAdmin
-            .from('vehicle_media')
-            .select('*')
-            .eq('vehicle_id', req.params.id);
-
-        let media = [];
-        if (!mError) {
-            media = mData || [];
-        } else if (mError.code === 'PGRST205') {
-            media = vehicle.features?.media || [];
-        } else {
-            throw mError;
-        }
-
-        const vehicleWithMedia = { ...vehicle, vehicle_media: media };
+        if (error) throw error;
 
         // Cache for 10 minutes
-        await setCache(`vehicle:${req.params.id}`, vehicleWithMedia, 600);
+        await setCache(`vehicle:${req.params.id}`, vehicle, 600);
 
-        res.json(vehicleWithMedia);
+        res.json(vehicle);
     } catch (err) {
         console.error('Get vehicle error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Add vehicle media
-app.post('/api/vehicles/:id/media', verifyToken, async (req, res) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    try {
-        const { media_type, url, is_primary } = req.body;
-        
-        // 1. Try table insert
-        const { data: media, error: mError } = await supabaseAdmin
-            .from('vehicle_media')
-            .insert({ vehicle_id: req.params.id, media_type, url, is_primary: is_primary || false })
-            .select()
-            .single();
-
-        if (mError && mError.code === 'PGRST205') {
-            // 2. Fallback: Update vehicle features.media
-            const { data: v } = await supabaseAdmin.from('vehicles').select('features').eq('id', req.params.id).single();
-            const existingMedia = v?.features?.media || [];
-            const newMediaItem = { id: Date.now(), vehicle_id: req.params.id, media_type, url, is_primary: is_primary || false, created_at: new Date() };
-            
-            // If setting primary, unset others in the features array
-            if (is_primary) existingMedia.forEach(m => m.is_primary = false);
-            
-            const updatedMedia = [...existingMedia, newMediaItem];
-            await supabaseAdmin.from('vehicles').update({ features: { ...v.features, media: updatedMedia } }).eq('id', req.params.id);
-            
-            // Invalidate cache
-            if (redisConnected) {
-                await redisClient.del(`vehicle:${req.params.id}`);
-            }
-            return res.status(201).json(newMediaItem);
-        }
-
-        if (mError) throw mError;
-
-        // Invalidate cache
-        if (redisConnected) {
-            await redisClient.del(`vehicle:${req.params.id}`);
-        }
-
-        res.status(201).json(media);
-    } catch (err) {
-        console.error('Add media error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Delete vehicle media
-app.delete('/api/media/:id', verifyToken, async (req, res) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    try {
-        // 1. Try table delete
-        const { data: media, error } = await supabaseAdmin
-            .from('vehicle_media')
-            .delete()
-            .eq('id', req.params.id)
-            .select()
-            .single();
-
-        if (error && error.code === 'PGRST205') {
-            // 2. Fallback: Search all vehicles for this media ID in features.media
-            const { data: vehicles } = await supabaseAdmin.from('vehicles').select('id, features');
-            for (const v of (vehicles || [])) {
-                const mediaIndex = (v.features?.media || []).findIndex(m => String(m.id) === String(req.params.id));
-                if (mediaIndex !== -1) {
-                    const updatedMedia = v.features.media.filter(m => String(m.id) !== String(req.params.id));
-                    await supabaseAdmin.from('vehicles').update({ features: { ...v.features, media: updatedMedia } }).eq('id', v.id);
-                    if (redisConnected) await redisClient.del(`vehicle:${v.id}`);
-                    return res.json({ message: 'Media deleted from features successfully' });
-                }
-            }
-            return res.status(404).json({ error: 'Media not found' });
-        }
-
-        if (error) throw error;
-        if (media && redisConnected) await redisClient.del(`vehicle:${media.vehicle_id}`);
-        res.json({ message: 'Media deleted successfully' });
-    } catch (err) {
-        console.error('Delete media error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Set primary media
-app.patch('/api/media/:id/primary', verifyToken, async (req, res) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    try {
-        const { id } = req.params;
-        
-        // 1. Get the vehicle_id for this media
-        const { data: media, error: getError } = await supabaseAdmin
-            .from('vehicle_media')
-            .select('vehicle_id')
-            .eq('id', id)
-            .single();
-
-        if (getError || !media) return res.status(404).json({ error: 'Media not found' });
-
-        // 2. Unset all other primary media for this vehicle
-        const { vehicle_id } = req.body;
-        
-        // 1. Try table update
-        const { error } = await supabaseAdmin
-            .from('vehicle_media')
-            .update({ is_primary: false })
-            .eq('vehicle_id', vehicle_id);
-            
-        if (!error) {
-            await supabaseAdmin.from('vehicle_media').update({ is_primary: true }).eq('id', req.params.id);
-        } else if (error.code === 'PGRST205') {
-            // 2. Fallback: Update features.media
-            const { data: v } = await supabaseAdmin.from('vehicles').select('features').eq('id', vehicle_id).single();
-            if (v && v.features?.media) {
-                const updatedMedia = v.features.media.map(m => ({
-                    ...m,
-                    is_primary: String(m.id) === String(req.params.id)
-                }));
-                await supabaseAdmin.from('vehicles').update({ features: { ...v.features, media: updatedMedia } }).eq('id', vehicle_id);
-            }
-        } else {
-            throw error;
-        }
-
-        if (redisConnected) await redisClient.del(`vehicle:${vehicle_id}`);
-        res.json({ message: 'Primary media updated' });
-    } catch (err) {
-        console.error('Set primary media error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Replace vehicle media
-app.post('/api/media/:id/replace', verifyToken, async (req, res) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    try {
-        const { url } = req.body;
-        
-        // 1. Try table update
-        const { data: media, error } = await supabaseAdmin
-            .from('vehicle_media')
-            .update({ url, updated_at: new Date() })
-            .eq('id', req.params.id)
-            .select()
-            .single();
-
-        if (error && error.code === 'PGRST205') {
-            // 2. Fallback: Search all vehicles for this media ID in features.media
-            const { data: vehicles } = await supabaseAdmin.from('vehicles').select('id, features');
-            for (const v of (vehicles || [])) {
-                const existingMedia = v.features?.media || [];
-                const mediaIndex = existingMedia.findIndex(m => String(m.id) === String(req.params.id));
-                if (mediaIndex !== -1) {
-                    existingMedia[mediaIndex].url = url;
-                    existingMedia[mediaIndex].updated_at = new Date();
-                    await supabaseAdmin.from('vehicles').update({ features: { ...v.features, media: existingMedia } }).eq('id', v.id);
-                    if (redisConnected) await redisClient.del(`vehicle:${v.id}`);
-                    return res.json(existingMedia[mediaIndex]);
-                }
-            }
-            return res.status(404).json({ error: 'Media not found' });
-        }
-
-        if (error) throw error;
-        if (media && redisConnected) await redisClient.del(`vehicle:${media.vehicle_id}`);
-        res.json(media);
-    } catch (err) {
-        console.error('Replace media error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// File Upload to Supabase Storage
-app.post('/api/admin/upload', verifyToken, upload.single('file'), async (req, res) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-
-        const file = req.file;
-        const fileExt = file.originalname.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-        const filePath = `vehicles/${fileName}`;
-
-        const { data, error } = await supabaseAdmin.storage
-            .from('vehicle-media')
-            .upload(filePath, file.buffer, {
-                contentType: file.mimetype,
-                upsert: false
-            });
-
-        if (error) throw error;
-
-        // Get public URL
-        const { data: { publicUrl } } = supabaseAdmin.storage
-            .from('vehicle-media')
-            .getPublicUrl(filePath);
-
-        res.json({ url: publicUrl, name: file.originalname, type: file.mimetype.startsWith('video') ? 'video' : 'image' });
-    } catch (err) {
-        console.error('Upload error:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -647,45 +379,18 @@ app.post('/api/vehicles', verifyToken, async (req, res) => {
     }
 
     try {
-        const { 
-            name, 
-            category, 
-            type, 
-            license_plate = 'AUTO-' + Date.now(), 
-            daily_rate = 0, 
-            location = 'N/A', 
-            capacity = 0, 
-            fuel_type = 'petrol', 
-            description = '', 
-            features = {} 
-        } = req.body;
-        
-        // Map category to allowed types for DB constraint
-        const catClean = (category || 'car').toLowerCase();
-        const typeMapping = { 
-            'bus': 'bus', 
-            'mini bus': 'bus',
-            'van': 'van', 
-            'vans': 'van',
-            'car': 'luxury',
-            'luxury car': 'luxury',
-            'sedan': 'sedan',
-            'suv': 'suv'
-        };
-        const dbType = typeMapping[catClean] || 'luxury';
+        const { name, type, license_plate, daily_rate, location, capacity, fuel_type } = req.body;
 
         const { data: vehicle, error } = await supabaseAdmin
             .from('vehicles')
             .insert({
                 name,
-                type: dbType, 
+                type,
                 license_plate,
                 daily_rate,
                 location,
                 capacity,
                 fuel_type,
-                description,
-                features: { ...features, category, model: type },
                 status: 'available',
                 created_at: new Date(),
             })
@@ -695,9 +400,7 @@ app.post('/api/vehicles', verifyToken, async (req, res) => {
         if (error) throw error;
 
         // Invalidate cache
-        if (redisClient && redisConnected) {
-            await redisClient.del('GET:/api/vehicles');
-        }
+        await redisClient.del('GET:/api/vehicles');
 
         // Broadcast real-time update
         broadcastUpdate('vehicles', 'INSERT', vehicle);
@@ -712,19 +415,11 @@ app.post('/api/vehicles', verifyToken, async (req, res) => {
 // Update vehicle status
 app.patch('/api/vehicles/:id/status', verifyToken, async (req, res) => {
     try {
-        const { category, type, features = {}, ...rest } = req.body;
-        
-        const updateData = { ...rest, updated_at: new Date() };
-        
-        if (category) {
-            const typeMapping = { 'bus': 'luxury', 'van': 'van', 'car': 'luxury' };
-            updateData.type = typeMapping[category] || 'luxury';
-            updateData.features = { ...features, category, model: type || features.model };
-        }
+        const { status } = req.body;
 
         const { data: vehicle, error } = await supabaseAdmin
             .from('vehicles')
-            .update(updateData)
+            .update({ status, updated_at: new Date() })
             .eq('id', req.params.id)
             .select()
             .single();
@@ -732,10 +427,8 @@ app.patch('/api/vehicles/:id/status', verifyToken, async (req, res) => {
         if (error) throw error;
 
         // Invalidate cache
-        if (redisClient && redisConnected) {
-            await redisClient.del('GET:/api/vehicles');
-            await redisClient.del(`vehicle:${req.params.id}`);
-        }
+        await redisClient.del('GET:/api/vehicles');
+        await redisClient.del(`vehicle:${req.params.id}`);
 
         // Broadcast real-time update
         broadcastUpdate('vehicles', 'UPDATE', vehicle);
@@ -743,42 +436,6 @@ app.patch('/api/vehicles/:id/status', verifyToken, async (req, res) => {
         res.json(vehicle);
     } catch (err) {
         console.error('Update vehicle error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Delete vehicle (admin only)
-app.delete('/api/vehicles/:id', verifyToken, async (req, res) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Only admins can delete vehicles' });
-    }
-
-    try {
-        const { id } = req.params;
-
-        // 1. Delete media first (due to FK)
-        await supabaseAdmin.from('vehicle_media').delete().eq('vehicle_id', id);
-
-        // 2. Delete vehicle
-        const { error } = await supabaseAdmin
-            .from('vehicles')
-            .delete()
-            .eq('id', id);
-
-        if (error) throw error;
-
-        // 3. Invalidate cache
-        if (redisClient && redisConnected) {
-            await redisClient.del('GET:/api/vehicles');
-            await redisClient.del(`vehicle:${id}`);
-        }
-
-        // 4. Broadcast update
-        broadcastUpdate('vehicles', 'DELETE', { id });
-
-        res.json({ message: 'Vehicle deleted successfully' });
-    } catch (err) {
-        console.error('Delete vehicle error:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -848,9 +505,7 @@ app.post('/api/bookings', verifyToken, async (req, res) => {
             .eq('id', vehicle_id);
 
         // Invalidate cache
-        if (redisClient && redisConnected) {
-            await redisClient.del('GET:/api/vehicles');
-        }
+        await redisClient.del('GET:/api/vehicles');
 
         // Broadcast real-time update
         broadcastUpdate('bookings', 'INSERT', booking);
@@ -868,19 +523,16 @@ app.get('/api/bookings', verifyToken, async (req, res) => {
     try {
         const { data: bookings, error } = await supabase
             .from('bookings')
-            .select('*, vehicle:vehicles(*)')
+            .select('*, vehicles(*)')
             .eq('user_id', req.user.id)
             .order('created_at', { ascending: false });
 
-        if (error) {
-            console.error('Fetch user bookings error:', error);
-            return res.json([]);
-        }
+        if (error) throw error;
 
-        res.json(bookings || []);
+        res.json(bookings);
     } catch (err) {
-        console.error('Get bookings error:', err.message);
-        res.status(500).json({ error: 'Internal server error', details: err.message });
+        console.error('Get bookings error:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -915,9 +567,7 @@ app.patch('/api/bookings/:id/cancel', verifyToken, async (req, res) => {
             .eq('id', booking.vehicle_id);
 
         // Invalidate cache
-        if (redisClient && redisConnected) {
-            await redisClient.del('GET:/api/vehicles');
-        }
+        await redisClient.del('GET:/api/vehicles');
 
         // Broadcast real-time update
         broadcastUpdate('bookings', 'UPDATE', { id: req.params.id, status: 'cancelled' });
@@ -985,433 +635,57 @@ app.get('/api/admin/analytics', verifyToken, async (req, res) => {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ error: 'Only admins can view analytics' });
     }
+
     try {
         const cacheKey = 'analytics:dashboard';
+        const cached = await redisClient.get(cacheKey);
 
-        if (redisConnected && redisClient) {
-            try {
-                const cached = await redisClient.get(cacheKey);
-                if (cached) return res.json(JSON.parse(cached));
-            } catch (e) { console.warn('Cache get failed'); }
+        if (cached) {
+            return res.json(JSON.parse(cached));
         }
 
-        // 1. Get Base Totals
-        const [resVehicles, resUsers] = await Promise.all([
-            supabase.from('vehicles').select('*', { count: 'exact', head: true }),
-            supabase.from('users').select('*', { count: 'exact', head: true })
-        ]);
+        // Get totals
+        const { count: totalVehicles } = await supabase
+            .from('vehicles')
+            .select('*', { count: 'exact', head: true });
 
-        const totalVehicles = resVehicles.count || 0;
-        const totalUsers = resUsers.count || 0;
-        console.log('Analytics Base:', { totalVehicles, totalUsers });
-
-        // 2. Get Official Bookings with Vehicle Type
-        const { data: bookings } = await supabaseAdmin
+        const { count: totalBookings } = await supabase
             .from('bookings')
-            .select('status, created_at, total_cost, vehicle:vehicles(type)');
+            .select('*', { count: 'exact', head: true });
 
-        // 3. Get Public Inquiries
-        const { data: inquiries } = await supabaseAdmin
-            .from('booking_requests')
-            .select('status, created_at, mode_of_transport');
+        const { count: totalUsers } = await supabase
+            .from('users')
+            .select('*', { count: 'exact', head: true });
 
-        // 4. Aggregate Stats
-        let confirmedCount = 0;
-        let rejectedCount = 0;
-        let totalRevenue = 0;
+        const { data: bookingStats } = await supabase
+            .from('bookings')
+            .select('total_cost')
+            .eq('status', 'confirmed');
 
-        const monthlyFreq = {}; // { 'YYYY-MM': { confirmed: 0, rejected: 0, bus: 0, car: 0, van: 0 } }
-        const yearlyFreq = {};  // { 'YYYY': { confirmed: 0, rejected: 0 } }
+        const totalRevenue = bookingStats?.reduce((sum, b) => sum + b.total_cost, 0) || 0;
 
-        const processItem = (item, type) => {
-            const date = new Date(item.created_at);
-            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            const yearKey = `${date.getFullYear()}`;
-
-            if (!monthlyFreq[monthKey]) monthlyFreq[monthKey] = { confirmed: 0, rejected: 0, bus: 0, car: 0, van: 0 };
-            if (!yearlyFreq[yearKey]) yearlyFreq[yearKey] = { confirmed: 0, rejected: 0 };
-
-            // Determine if confirmed or rejected based on table type and status
-            let isConfirmed = false;
-            let isRejected = false;
-
-            if (type === 'booking') {
-                isConfirmed = item.status === 'confirmed' || item.status === 'completed';
-                isRejected = item.status === 'cancelled';
-                if (isConfirmed) totalRevenue += Number(item.total_cost || 0);
-            } else {
-                isConfirmed = item.status === 'confirmed';
-                isRejected = item.status === 'cancelled' || item.status === 'rejected';
-            }
-
-            if (isConfirmed) {
-                confirmedCount++;
-                monthlyFreq[monthKey].confirmed++;
-                yearlyFreq[yearKey].confirmed++;
-
-                // Track vehicle category
-                let vCat = '';
-                if (type === 'booking') {
-                    const vType = item.vehicle?.type?.toLowerCase() || '';
-                    if (vType === 'van') vCat = 'van';
-                    else if (['sedan', 'suv', 'luxury', 'car'].includes(vType)) vCat = 'car';
-                    else vCat = 'bus'; // Default for rentals
-                } else {
-                    vCat = (item.mode_of_transport || '').toLowerCase();
-                }
-
-                if (vCat === 'bus') monthlyFreq[monthKey].bus++;
-                else if (vCat === 'car') monthlyFreq[monthKey].car++;
-                else if (vCat === 'van') monthlyFreq[monthKey].van++;
-
-            } else if (isRejected) {
-                rejectedCount++;
-                monthlyFreq[monthKey].rejected++;
-                yearlyFreq[yearKey].rejected++;
-            }
-        };
-
-        (bookings || []).forEach(b => processItem(b, 'booking'));
-        (inquiries || []).forEach(i => processItem(i, 'inquiry'));
-
-        const result = {
+        const analytics = {
             totalVehicles,
+            totalBookings,
             totalUsers,
-            totalBookings: confirmedCount,
-            confirmedCount,
-            rejectedCount,
             totalRevenue,
-            monthlyStats: monthlyFreq,
-            yearlyStats: yearlyFreq,
             timestamp: new Date(),
         };
 
-        console.log('Final Analytics:', JSON.stringify(result, null, 2));
+        // Cache for 1 hour
+        await setCache(cacheKey, analytics, 3600);
 
-        // Cache for 5 mins for live-ish feel
-        await setCache(cacheKey, result, 300);
-
-        res.json(result);
+        res.json(analytics);
     } catch (err) {
         console.error('Analytics error:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// Get detailed bookings for analytics
-app.get('/api/admin/analytics/bookings', verifyToken, async (req, res) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Only admins can view detailed analytics' });
-    }
+// ==================== Health Check ====================
 
-    try {
-        const { data, error } = await supabaseAdmin
-            .from('bookings')
-            .select(`
-                *,
-                vehicle:vehicles(name, type, license_plate)
-            `)
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Fetch bookings error:', error);
-            // Return empty array if table empty or error occurs to prevent frontend crash
-            return res.json([]);
-        }
-        res.json(data || []);
-    } catch (err) {
-        console.error('Analytics bookings error:', err);
-        res.json([]); // Fallback to empty array
-    }
-});
-
-// Get ALL bookings (Official + Public Inquiries) for Admin
-app.get('/api/admin/all-bookings', verifyToken, async (req, res) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Unauthorized' });
-    }
-
-    try {
-        // 1. Fetch Official Bookings
-        const { data: official, error: err1 } = await supabaseAdmin
-            .from('bookings')
-            .select('*, vehicle:vehicles(name, type, license_plate)')
-            .order('created_at', { ascending: false });
-
-        // 2. Fetch Confirmed Inquiry Requests
-        const { data: requests, error: err2 } = await supabaseAdmin
-            .from('booking_requests')
-            .select('*')
-            .neq('status', 'pending') // Only show processed ones in the main bookings list
-            .order('created_at', { ascending: false });
-
-        if (err1) throw err1;
-        if (err2) throw err2;
-
-        // 3. Format inquiries to match the booking structure for the table
-        const formattedRequests = (requests || []).map(r => ({
-            id: r.id,
-            user_id: 'Public Inquiry',
-            vehicle_name: r.mode_of_transport ? (r.mode_of_transport.charAt(0).toUpperCase() + r.mode_of_transport.slice(1)) : 'Vehicle',
-            start_date: r.start_date,
-            end_date: r.end_date,
-            total_cost: 0, // Inquiries don't have cost yet
-            status: r.status,
-            is_inquiry: true,
-            customer_name: r.customer_name
-        }));
-
-        const unified = [
-            ...(official || []).map(b => ({ ...b, vehicle_name: b.vehicle?.name, is_inquiry: false })),
-            ...formattedRequests
-        ].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-
-        res.json(unified);
-    } catch (err) {
-        console.error('All Bookings Fetch Error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ==================== Public Booking Requests ====================
-
-app.post('/api/public/bookings', async (req, res) => {
-    const {
-        customer_name,
-        customer_phone,
-        pickup_location,
-        destination,
-        purpose_of_trip,
-        visited_places,
-        start_date,
-        end_date,
-        total_days,
-        mode_of_transport
-    } = req.body;
-
-    try {
-        // 1. Save to Database
-        const { data, error } = await supabaseAdmin
-            .from('booking_requests')
-            .insert([{
-                customer_name,
-                customer_phone,
-                pickup_location,
-                destination,
-                purpose_of_trip,
-                visited_places,
-                start_date,
-                end_date,
-                total_days,
-                mode_of_transport,
-                status: 'pending'
-            }])
-            .select();
-
-        if (error) throw error;
-
-        // 2. Send Email Notification
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT),
-            secure: parseInt(process.env.SMTP_PORT) === 465,
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-        });
-
-        const mailOptions = {
-            from: process.env.SMTP_FROM,
-            to: 'mrcholidays73@gmail.com',
-            subject: `📋 NEW INQUIRY: ${customer_name}`,
-            html: `
-                <div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #1e293b; background-color: #f8fafc; max-width: 600px; border-radius: 12px; border: 1px solid #e2e8f0;">
-                    <h2 style="color: #3b82f6; margin-bottom: 24px; font-size: 24px;">New Booking Inquiry</h2>
-                    
-                    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                        <p style="margin: 10px 0;"><strong>👤 Customer Name:</strong> ${customer_name}</p>
-                        <p style="margin: 10px 0;"><strong>📞 Phone Number:</strong> ${customer_phone}</p>
-                        <p style="margin: 10px 0;"><strong>🚗 Transport Mode:</strong> ${mode_of_transport || 'N/A'}</p>
-                        <p style="margin: 10px 0;"><strong>📍 Route:</strong> ${pickup_location} to ${destination}</p>
-                        <p style="margin: 10px 0;"><strong>📅 Dates:</strong> ${start_date} to ${end_date} (${total_days} Days)</p>
-                        <p style="margin: 10px 0;"><strong>📍 Visited Places:</strong> ${visited_places || 'N/A'}</p>
-                        <p style="margin: 10px 0;"><strong>🎯 Trip Purpose:</strong> ${purpose_of_trip || 'General Rental'}</p>
-                    </div>
-
-                    <div style="margin-top: 30px; text-align: center;">
-                        <a href="${process.env.FRONTEND_URL}/admin-dashboard.html" 
-                           style="background-color: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                            Open Admin Dashboard
-                        </a>
-                    </div>
-                    
-                    <p style="font-size: 12px; color: #64748b; margin-top: 30px; text-align: center;">
-                        This inquiry has been automatically saved to your dashboard.
-                    </p>
-                </div>
-            `
-        };
-
-        console.log(`📧 Attempting to send inquiry email to: mrcholidays73@gmail.com for ${customer_name}`);
-        
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error('❌ Email notification failed!');
-                console.error('Error Code:', error.code);
-                console.error('Message:', error.message);
-                if (error.code === 'EAUTH') {
-                    console.error('👉 TIP: Check your SMTP_USER and SMTP_PASS (App Password) in .env');
-                }
-            } else {
-                console.log('✅ Email notification sent successfully:', info.response);
-            }
-        });
-
-        res.status(201).json({ message: 'Booking request received', data: data[0] });
-    } catch (err) {
-        console.error('Booking submission error:', err.message);
-        res.status(500).json({ error: 'Failed to process booking request' });
-    }
-});
-
-// ==================== Public Email Action Links ====================
-
-app.get('/api/booking-requests/:id/action/:status', async (req, res) => {
-    try {
-        const { id, status } = req.params;
-        if (!['confirmed', 'cancelled'].includes(status)) {
-            return res.status(400).send('Invalid status');
-        }
-
-        const { error } = await supabaseAdmin
-            .from('booking_requests')
-            .update({ status })
-            .eq('id', id);
-
-        if (error) throw error;
-
-        // Broadcast real-time update
-        broadcastUpdate('booking_requests', 'UPDATE', { id, status });
-
-        res.send(`
-            <html>
-            <body style="font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #020617; color: white;">
-                <div style="text-align: center; padding: 40px; background: rgba(255,255,255,0.1); border-radius: 16px;">
-                    <h1 style="color: ${status === 'confirmed' ? '#10b981' : '#ef4444'};">Inquiry ${status.charAt(0).toUpperCase() + status.slice(1)}!</h1>
-                    <p>The booking request has been successfully updated in the database.</p>
-                    <a href="http://localhost:3000/admin-dashboard.html" style="color: #3b82f6; text-decoration: none; margin-top: 20px; display: inline-block;">Go to Admin Dashboard</a>
-                </div>
-            </body>
-            </html>
-        `);
-    } catch (err) {
-        res.status(500).send('Error updating request: ' + err.message);
-    }
-});
-
-// ==================== Admin: Fetch Booking Requests ====================
-
-app.get('/api/admin/booking-requests', verifyToken, async (req, res) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Unauthorized' });
-    }
-
-    try {
-        const { data, error } = await supabaseAdmin
-            .from('booking_requests')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        res.json(data);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.patch('/api/admin/booking-requests/:id/status', verifyToken, async (req, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
-    try {
-        const { status } = req.body;
-        const { data, error } = await supabaseAdmin
-            .from('booking_requests')
-            .update({ status })
-            .eq('id', req.params.id)
-            .select()
-            .single();
-
-        if (error) throw error;
-        broadcastUpdate('booking_requests', 'UPDATE', { id: req.params.id, status });
-        res.json(data);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Assign vehicle to inquiry
-app.post('/api/admin/booking-requests/:id/assign', verifyToken, async (req, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
-    
-    const { vehicle_id, total_cost } = req.body;
-    const { id } = req.params;
-
-    try {
-        // 1. Fetch Request Details
-        const { data: request, error: fetchError } = await supabaseAdmin
-            .from('booking_requests')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (fetchError) throw fetchError;
-
-        // 2. Update Booking Request Status (Keep as 'confirmed' to pass DB constraint)
-        const { error: reqError } = await supabaseAdmin
-            .from('booking_requests')
-            .update({ status: 'confirmed' })
-            .eq('id', id);
-
-        if (reqError) throw reqError;
-
-        // 3. Update Vehicle Status
-        const { error: vehError } = await supabaseAdmin
-            .from('vehicles')
-            .update({ status: 'booked' })
-            .eq('id', vehicle_id);
-
-        if (vehError) throw vehError;
-
-        // 4. Create a Formal Booking Entry
-        const { error: bookError } = await supabaseAdmin
-            .from('bookings')
-            .insert([{
-                booking_id: `INQ-${id.toString().slice(0, 8)}`,
-                user_id: req.user.id, // Assigned by admin
-                vehicle_id: vehicle_id,
-                start_date: request.start_date,
-                end_date: request.end_date,
-                pickup_location: request.pickup_location,
-                return_location: request.destination,
-                total_amount: total_cost || 0,
-                status: 'confirmed',
-                notes: `Assigned from Inquiry: ${request.customer_name} (${request.customer_phone})`
-            }]);
-
-        if (bookError) {
-            console.error('Shadow booking creation failed:', bookError);
-            // Non-fatal if the rest worked, but let's notify
-        }
-
-        broadcastUpdate('booking_requests', 'UPDATE', { id, status: 'confirmed' });
-        broadcastUpdate('vehicles', 'UPDATE', { id: vehicle_id, status: 'booked' });
-        broadcastUpdate('bookings', 'INSERT', { vehicle_id });
-
-        res.json({ message: 'Vehicle assigned and booking created successfully' });
-    } catch (err) {
-        console.error('Assign vehicle error:', err);
-        res.status(500).json({ error: err.message });
-    }
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date() });
 });
 
 // ==================== Error Handling ====================
@@ -1445,31 +719,3 @@ httpServer.listen(PORT, () => {
 });
 
 export default app;
-// Diagnostic: Test Email Configuration
-app.post('/api/admin/test-email', verifyToken, async (req, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
-    
-    try {
-        const testTransporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT),
-            secure: parseInt(process.env.SMTP_PORT) === 465,
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-        });
-
-        await testTransporter.sendMail({
-            from: process.env.SMTP_FROM,
-            to: process.env.SMTP_USER, // Send to self
-            subject: '📋 MRC Rentals: Email Configuration Test',
-            text: 'Your email settings are working perfectly! You created this test from the Admin Dashboard.'
-        });
-
-        res.json({ message: 'Success! Test email sent to ' + process.env.SMTP_USER });
-    } catch (err) {
-        console.error('Email test error:', err);
-        res.status(500).json({ error: 'Failure: ' + err.message });
-    }
-});
