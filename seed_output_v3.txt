@@ -1,0 +1,7 @@
+
+> team-mrc@1.0.0 seed-db
+> node db_seed.js
+
+--- Seeding Database V2 ---
+Current user count: 0
+Creating default admin user...

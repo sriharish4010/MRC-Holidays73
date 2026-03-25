@@ -1,0 +1,6 @@
+
+> team-mrc@1.0.0 test-anon
+> node test_anon.js
+
+Testing ANON Key...
+ANON Key Success, Vehicles found: 22

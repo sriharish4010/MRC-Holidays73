@@ -1,0 +1,17 @@
+
+> team-mrc@1.0.0 audit-db
+> node db_audit_v2.js
+
+--- Database Audit V2 (Enhanced) ---
+URL: https://czocnfvusoybakoohwzm.supabase.co
+Checking table: vehicles...
+Table 'vehicles': EXISTS, count=23
+Checking table: vehicle_media...
+Table 'vehicle_media': EXISTS, count=0
+Checking table: booking_requests...
+Table 'booking_requests': EXISTS, count=0
+Checking table: bookings...
+Table 'bookings': EXISTS, count=0
+Checking table: users...
+Table 'users': EXISTS, count=0
+Audit complete

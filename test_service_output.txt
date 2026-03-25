@@ -1,0 +1,6 @@
+
+> team-mrc@1.0.0 test-service
+> node test_service.js
+
+Testing SERVICE Key...
+SERVICE Key Success, Vehicles found: 22

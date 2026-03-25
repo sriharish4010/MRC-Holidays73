@@ -1,0 +1,7 @@
+
+> team-mrc@1.0.0 seed-db
+> node db_seed.js
+
+--- Seeding Database ---
+Creating default admin user...
+Creating sample booking...

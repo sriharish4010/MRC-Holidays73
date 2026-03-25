@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            name="description"
+            content="MRC HOLIDAYS - Premium vehicle rentals and media coverage services. Explore our fleet of buses, vans, and executive cars."
+        />
+        <meta
+            name="keywords"
+            content="vehicle rental, bus rental, van rental, car rental, media coverage, tour packages"
+        />
+        <meta name="author" content="MRC HOLIDAYS" />
+        <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+
+        <!-- Open Graph Meta Tags -->
+        <meta property="og:title" content="MRC HOLIDAYS - Premium Vehicle Rental Services" />
+        <meta
+            property="og:description"
+            content="Explore our premium fleet of buses, vans, and executive cars for your travel needs."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="backside_bus.jpeg" />
+
+        <!-- Preconnect for performance -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+
+        <title>MRC HOLIDAYS - Premium Vehicle Rental & Media Coverage</title>
+        <link rel="stylesheet" href="j.css" />
+    </head>
+    <body>
+        <!-- Skip to main content link for accessibility -->
+        <a href="#main-content" class="skip-to-main">Skip to main content</a>
+
+        <!-- Navigation -->
+        <nav class="navbar" role="navigation" aria-label="Main navigation">
+            <div class="navbar-container">
+                <div class="navbar-brand">
+                    <h1>MRC HOLIDAYS</h1>
+                </div>
+
+                <button
+                    class="mobile-menu-toggle"
+                    id="mobileMenuToggle"
+                    aria-label="Toggle mobile menu"
+                    aria-expanded="false"
+                    aria-controls="navbarMenu"
+                >
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+
+                <ul class="navbar-menu" id="navbarMenu">
+                    <li><a href="#vehicles" data-i18n="nav_vehicles">Vehicles</a></li>
+                    <li><a href="#services" data-i18n="nav_services">Services</a></li>
+                    <li><a href="#contact" data-i18n="nav_contact">Contact</a></li>
+                    <li class="auth-buttons">
+                        <a href="admin-login.html" class="nav-button admin-btn" aria-label="Admin Login" data-i18n="nav_admin">
+                            🔐 Admin
+                        </a>
+                        <a href="booking.html" class="nav-button signup-btn" aria-label="Book Now" data-i18n="nav_book">
+                            🚗 Book Now
+                        </a>
+                    </li>
+                    <li class="lang-switcher">
+                        <button class="lang-btn active" data-lang="en" onclick="setLanguage('en')">EN</button>
+                        <button class="lang-btn" data-lang="ta" onclick="setLanguage('ta')">தமிழ்</button>
+                    </li>
+                    <li>
+                        <button
+                            class="theme-toggle"
+                            id="themeToggle"
+                            aria-label="Toggle dark/light theme"
+                        >
+                            <span>🌙</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <section class="hero" id="hero" aria-label="Hero section with background video">
+            <video class="hero-video" autoplay muted loop aria-hidden="true" loading="lazy">
+                <source src="driving.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+            </video>
+
+            <div class="hero-overlay"></div>
+
+            <div class="hero-content">
+                <h2 data-i18n="hero_title">Premium Vehicle Rental & Media Services</h2>
+                <p data-i18n="hero_subtitle">Discover our exclusive fleet of buses, vans, and executive cars</p>
+                
+                <div class="hero-buttons">
+                    <a class="cta-button" href="#vehicles" data-i18n="hero_explore">Explore Fleet</a>
+                    <a href="booking.html" class="cta-button signup-cta" aria-label="Book Now" data-i18n="hero_book">
+                        Book Now
+                    </a>
+                </div>
+            </div>
+
+            <!-- Rain animation effect -->
+            <div class="rain-effect" aria-hidden="true"></div>
+            <!-- Lightning animation effect -->
+            <div class="lightning-effect" aria-hidden="true"></div>
+        </section>
+
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Vehicles/Gallery Section -->
+            <section id="vehicles" class="gallery-section" aria-labelledby="gallery-heading">
+                <h2 id="gallery-heading" class="section-title visible" data-i18n="section_fleet">Our Fleet</h2>
+
+                <!-- Gallery Category Tabs -->
+                <div class="gallery-tabs" role="group" aria-label="Fleet categories">
+                    <button
+                        class="tab-button active"
+                        data-category="bus"
+                        type="button"
+                        aria-pressed="true"
+                        data-i18n="tab_bus"
+                    >
+                        Buses
+                    </button>
+                    <button
+                        class="tab-button"
+                        data-category="van"
+                        type="button"
+                        aria-pressed="false"
+                        data-i18n="tab_van"
+                    >
+                        Vans
+                    </button>
+                    <button
+                        class="tab-button"
+                        data-category="car"
+                        type="button"
+                        aria-pressed="false"
+                        data-i18n="tab_car"
+                    >
+                        Executive Cars
+                    </button>
+                </div>
+
+                <!-- Gallery Grid -->
+                <div
+                    class="gallery-grid"
+                    id="galleryGrid"
+                    role="region"
+                    aria-label="Vehicle gallery"
+                >
+                    <!-- Dynamically populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Services Section -->
+            <section id="services" class="services-section" aria-labelledby="services-heading">
+                <h2 id="services-heading" class="section-title" data-i18n="section_services">Our Services</h2>
+
+                <div class="services-grid">
+                    <article class="service-card">
+                        <h3 data-i18n="service_bus_title">Bus Rent</h3>
+                        <p data-i18n="service_bus_desc">
+                            Premium luxury buses for group travel, corporate events, and long-distance
+                            journeys with professional drivers and comfort.
+                        </p>
+                    </article>
+                    <article class="service-card">
+                        <h3 data-i18n="service_van_title">Van Rent</h3>
+                        <p data-i18n="service_van_desc">
+                            Spacious and comfortable vans for small to medium groups, perfect for
+                            team outings and flexible transportation needs.
+                        </p>
+                    </article>
+                    <article class="service-card">
+                        <h3 data-i18n="service_car_title">Car Rent</h3>
+                        <p data-i18n="service_car_desc">
+                            Executive cars and premium sedans for individual and corporate travel
+                            with style and sophistication.
+                        </p>
+                    </article>
+                    <article class="service-card">
+                        <h3 data-i18n="service_tour_title">Tour Packages</h3>
+                        <p data-i18n="service_tour_desc">
+                            Customized tour packages with premium transportation, experienced guides,
+                            and unforgettable travel experiences.
+                        </p>
+                    </article>
+                </div>
+            </section>
+
+            <!-- Contact Section -->
+            <section id="contact" class="contact-section" aria-labelledby="contact-heading">
+                <h2 id="contact-heading" class="section-title" data-i18n="section_contact">Contact & Booking</h2>
+
+                <div class="contact-grid">
+                    <div class="contact-card">
+                        <h3 data-i18n="contact_murugesh">Murugesh</h3>
+                        <p data-i18n="contact_fleet">Fleet Management & Inquiries</p>
+                        <a
+                            href="tel:+919751323273"
+                            class="contact-button"
+                            aria-label="Call Murugesh"
+                        >
+                            📞 9751323273
+                        </a>
+                    </div>
+
+                    <div class="contact-card">
+                        <h3 data-i18n="contact_harish">Harish</h3>
+                        <p data-i18n="contact_reservations">Booking Services & Reservations</p>
+                        <a
+                            href="tel:+916382904010"
+                            class="contact-button"
+                            aria-label="Call Harish"
+                        >
+                            📞 6382904010
+                        </a>
+                    </div>
+                </div>
+
+                <div class="instagram-contact" style="text-align: center; margin-top: 40px;">
+                    <h3 data-i18n="contact_instagram" style="color: var(--primary); margin-bottom: 20px; font-size: 1.5rem;">Follow Us on Instagram</h3>
+                    <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                        <a href="https://instagram.com/mrc_holidays" target="_blank" class="contact-button" style="display: inline-flex; align-items: center; gap: 8px; width: auto; padding: 12px 24px;">
+                            <i class="fa-brands fa-instagram" style="font-size: 1.2rem;"></i> mrc_holidays
+                        </a>
+                        <a href="https://instagram.com/mrc_tours_and_travels" target="_blank" class="contact-button" style="display: inline-flex; align-items: center; gap: 8px; width: auto; padding: 12px 24px;">
+                            <i class="fa-brands fa-instagram" style="font-size: 1.2rem;"></i> mrc_tours_and_travels
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modal for Gallery Slider -->
+        <div
+            class="modal"
+            id="galleryModal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sliderTitle"
+            aria-hidden="true"
+        >
+            <button class="modal-close" id="modalClose" aria-label="Close gallery modal">✕</button>
+
+            <div class="modal-content">
+                <div class="slider-container">
+                    <button class="slider-btn prev" id="sliderPrev" aria-label="Previous item">
+                        ❮
+                    </button>
+
+                    <!-- Image Display -->
+                    <img
+                        id="sliderImage"
+                        class="slider-media"
+                        alt="Gallery item"
+                        loading="lazy"
+                    />
+
+                    <!-- Video Display -->
+                    <video
+                        id="sliderVideo"
+                        class="slider-media"
+                        controls
+                        aria-label="Gallery video"
+                    >
+                        <source id="videoSource" type="video/mp4" />
+                        Your browser does not support the video tag.
+                    </video>
+
+                    <button class="slider-btn next" id="sliderNext" aria-label="Next item">
+                        ❯
+                    </button>
+                </div>
+
+                <!-- Slider Counter & Info -->
+                <div class="slider-info">
+                    <p id="sliderCounter">1 / 1</p>
+                    <h3 id="sliderTitle">Item Title</h3>
+                    <p id="sliderDescription" class="slider-description"></p>
+                </div>
+
+                <!-- Slider Indicators -->
+                <div
+                    class="slider-indicators"
+                    id="sliderIndicators"
+                    role="group"
+                    aria-label="Gallery slide indicators"
+                >
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer role="contentinfo">
+            <p data-i18n="footer_rights">&copy; 2026 MRC HOLIDAYS. All rights reserved.</p>
+        </footer>
+
+        <script src="i18n.js"></script>
+        <script type="module" src="script.js"></script>
+    </body>
+</html>

@@ -1,0 +1,4 @@
+--- Database Audit ---
+Vehicles with media in features JSONB: 0 / 1
+vehicle_media table status: MISSING or ERROR (PGRST205: Could not find the table 'public.vehicle_media' in the schema cache)
+booking_requests table status: MISSING or ERROR (PGRST205: Could not find the table 'public.booking_requests' in the schema cache)

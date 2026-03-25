@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Your Trip | MRC HOLIDAYS</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --accent: #f59e0b;
+            --bg-dark: #020617;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            color-scheme: dark;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(245, 158, 11, 0.03) 0%, transparent 40%);
+        }
+
+        .booking-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 48px;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .logo i { color: var(--primary); }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        /* Form Styling */
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--primary);
+            margin: 32px 0 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--glass-border);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group.full-width { grid-column: span 2; }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        input, select, textarea {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: white;
+            font-size: 15px;
+            transition: all 0.2s;
+            outline: none;
+            width: 100%;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.05);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        input[readonly] {
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--primary);
+            font-weight: 700;
+            cursor: not-allowed;
+        }
+
+        select option {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+        }
+
+        .submit-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 40px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .submit-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 24px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover { color: var(--text-primary); }
+
+        /* Custom Toast */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            display: none;
+            animation: slideIn 0.3s ease-out;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.full-width { grid-column: span 1; }
+            .booking-card { padding: 32px 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="booking-card">
+        <div class="header">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                <div class="lang-switcher">
+                    <button class="lang-btn active" data-lang="en" onclick="setLanguage('en')">EN</button>
+                    <button class="lang-btn" data-lang="ta" onclick="setLanguage('ta')">தமிழ்</button>
+                </div>
+            </div>
+            <div class="logo">
+                <i class="fa-solid fa-car-side"></i>
+                MRC HOLIDAYS
+            </div>
+            <p class="subtitle" data-i18n="booking_subtitle">Enter your details to request a premium booking</p>
+        </div>
+
+        <form id="bookingForm">
+            <div class="section-title" data-i18n="customer_details">Customer Details</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label data-i18n="label_name">Full Name</label>
+                    <input type="text" id="customerName" placeholder="Enter your name" data-i18n="placeholder_name" required>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="label_phone">Phone Number</label>
+                    <input type="tel" id="customerPhone" placeholder="Enter phone number" data-i18n="placeholder_phone" required>
+                </div>
+            </div>
+
+            <div class="section-title" data-i18n="travel_details">Travel Details</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label data-i18n="label_from">From (Pickup)</label>
+                    <input type="text" id="pickupLocation" placeholder="Starting place" data-i18n="placeholder_from" required>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="label_to">To (Destination)</label>
+                    <input type="text" id="destination" placeholder="Where are you going?" data-i18n="placeholder_to" required>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="label_purpose">Purpose of Trip</label>
+                    <select id="purposeOfTrip" required>
+                        <option value="Tourism">Tourism</option>
+                        <option value="Business">Business</option>
+                        <option value="Family Visit">Family Visit</option>
+                        <option value="Event/Wedding">Event/Wedding</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="label_transport">Mode of Transport</label>
+                    <select id="modeOfTransport" required>
+                        <option value="Bus (54 seater - AC)" data-i18n="opt_bus_54_ac">Bus (54 seater - AC)</option>
+                        <option value="Bus (54 seater - Non-AC)" data-i18n="opt_bus_54_non_ac">Bus (54 seater - Non-AC)</option>
+                        <option value="Bus (60 seater - AC)" data-i18n="opt_bus_60_ac">Bus (60 seater - AC)</option>
+                        <option value="Bus (60 seater - Non-AC)" data-i18n="opt_bus_60_non_ac">Bus (60 seater - Non-AC)</option>
+                        <option value="Tembo Traveller" data-i18n="opt_tembo_traveller">Tembo Traveller</option>
+                        <option value="Car (7 seater)" data-i18n="opt_car_7">Car (7 seater)</option>
+                        <option value="Car (5 seater)" data-i18n="opt_car_5">Car (5 seater)</option>
+                        <option value="Urbania (13 seater)" data-i18n="opt_urbania_13">Urbania (13 seater)</option>
+                        <option value="Coach Van (21 seater AC)" data-i18n="opt_coach_van_21_ac">Coach Van (21 seater AC)</option>
+                        <option value="Coach Van (21 seater Non-AC)" data-i18n="opt_coach_van_21_non_ac">Coach Van (21 seater Non-AC)</option>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label data-i18n="label_visited">Visited Places</label>
+                    <div id="visitedPlacesContainer" class="dynamic-input-container">
+                        <div class="dynamic-input-group">
+                            <input type="text" class="visited-place-input" placeholder="Places you plan to visit" data-i18n="placeholder_visited" required>
+                            <button type="button" class="btn-icon btn-add" onclick="addVisitedPlace()">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title" data-i18n="label_dates">Dates</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label data-i18n="label_start_date">Starting Date</label>
+                    <input type="date" id="startDate" required>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="label_end_date">Ending Date</label>
+                    <input type="date" id="endDate">
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span data-i18n="btn_submit">Submit Request</span>
+            </button>
+        </form>
+
+        <a href="index.html" class="back-link" data-i18n="link_back"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
+    </div>
+
+    <div id="toast"></div>
+
+    <script src="i18n.js"></script>
+    <script>
+        const form = document.getElementById('bookingForm');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Set min date to today
+        const today = new Date().toISOString().split('T')[0];
+        startDateInput.min = today;
+        endDateInput.min = today;
+
+        function addVisitedPlace() {
+            const container = document.getElementById('visitedPlacesContainer');
+            const lang = localStorage.getItem('mrc_lang') || 'en';
+            const placeholder = translations[lang].placeholder_visited;
+            
+            const newGroup = document.createElement('div');
+            newGroup.className = 'dynamic-input-group';
+            newGroup.innerHTML = `
+                <input type="text" class="visited-place-input" placeholder="${placeholder}" data-i18n="placeholder_visited" required>
+                <button type="button" class="btn-icon btn-remove" onclick="removeVisitedPlace(this)">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+            `;
+            container.appendChild(newGroup);
+        }
+
+        function removeVisitedPlace(btn) {
+            btn.parentElement.remove();
+        }
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const lang = localStorage.getItem('mrc_lang') || 'en';
+            const submittingText = translations[lang].btn_submitting;
+            const originalBtnHtml = submitBtn.innerHTML;
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${submittingText}`;
+
+            // Collect all visited places
+            const visitedPlaces = Array.from(document.querySelectorAll('.visited-place-input'))
+                .map(input => input.value.trim())
+                .filter(val => val !== '')
+                .join(', ');
+
+            const payload = {
+                customer_name: document.getElementById('customerName').value,
+                customer_phone: document.getElementById('customerPhone').value,
+                pickup_location: document.getElementById('pickupLocation').value,
+                destination: document.getElementById('destination').value,
+                purpose_of_trip: document.getElementById('purposeOfTrip').value,
+                mode_of_transport: document.getElementById('modeOfTransport').value,
+                visited_places: visitedPlaces,
+                start_date: startDateInput.value,
+                end_date: endDateInput.value || null,
+                total_days: 0
+            };
+
+            try {
+                const response = await fetch('http://localhost:5000/api/public/bookings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    showToast(translations[lang].toast_success);
+                    form.reset();
+                    // Reset visited places to 1 field
+                    const placeholder = translations[lang].placeholder_visited;
+                    document.getElementById('visitedPlacesContainer').innerHTML = `
+                        <div class="dynamic-input-group">
+                            <input type="text" class="visited-place-input" placeholder="${placeholder}" data-i18n="placeholder_visited" required>
+                            <button type="button" class="btn-icon btn-add" onclick="addVisitedPlace()">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    // Redirect to home page after a short delay to allow user to read the message
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2500);
+                } else {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Failed to submit request');
+                }
+            } catch (err) {
+                showToast(translations[lang].toast_error + err.message, true);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+            }
+        };
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.background = isError ? 'rgba(239, 68, 68, 0.9)' : 'rgba(16, 185, 129, 0.9)';
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | MRC HOLIDAYS</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --accent: #f59e0b;
+            --bg-dark: #020617;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #64748b;
+            --success: #10b981;
+            --error: #ef4444;
+            color-scheme: dark;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: #020617;
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                              radial-gradient(circle at 100% 100%, rgba(245, 158, 11, 0.05) 0%, transparent 50%);
+        }
+
+        /* Layout */
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 48px;
+            padding-left: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo i {
+            color: var(--primary);
+        }
+
+        /* Media Management */
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .media-card {
+            position: relative;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            transition: transform 0.2s;
+        }
+
+        .media-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .media-actions {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .media-card:hover .media-actions {
+            opacity: 1;
+        }
+
+        .media-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .primary-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--primary);
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .nav-list {
+            list-style: none;
+            flex: 1;
+        }
+
+        .nav-item {
+            margin-bottom: 6px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 40px 60px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .stat-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 24px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        /* Sections */
+        .section {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Charts */
+        .chart-container {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 48px;
+        }
+
+        /* Tables */
+        .table-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            overflow: hidden;
+            margin-bottom: 32px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 16px 24px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        td {
+            padding: 16px 24px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        /* Forms */
+        .form-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 48px;
+        }
+
+        .grid-form {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        input, select, textarea {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+        }
+
+        select option {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { filter: brightness(1.2); transform: translateY(-1px); }
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--error); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .btn-danger:hover { background: var(--error); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--glass-border); color: var(--text-primary); }
+
+        /* Media Management */
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .media-item {
+            position: relative;
+            aspect-ratio: 16/9;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+
+        .media-item img, .media-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .media-actions {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .media-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            color: white;
+            border: none;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .media-btn:hover { background: var(--error); }
+
+        .primary-badge {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background: var(--success);
+            color: white;
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--bg-dark);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        /* Alert */
+        #customAlert {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 16px 32px;
+            border-radius: 16px;
+            z-index: 9999;
+            display: none;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            animation: slideDown 0.3s ease-out;
+            min-width: 300px;
+            text-align: center;
+        }
+
+        @keyframes slideDown { 
+            from { transform: translate(-50%, -100%); opacity: 0; } 
+            to { transform: translate(-50%, 0); opacity: 1; } 
+        }
+
+    </style>
+</head>
+<body>
+    <div id="customAlert"></div>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>MRC HOLIDAYS</span>
+            </div>
+            <nav class="nav-list">
+                <li class="nav-item"><a href="#" class="nav-link active" data-section="analytics"><i class="fa-solid fa-chart-line"></i> Analytics</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" data-section="requests"><i class="fa-solid fa-bell"></i> Booking Requests</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" data-section="fleet"><i class="fa-solid fa-car"></i> Fleet Management</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" data-section="bookings"><i class="fa-solid fa-calendar-check"></i> Bookings</a></li>
+            </nav>
+            <div style="margin-top: auto; padding: 20px; border-top: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn btn-danger" style="width: 100%; justify-content: center;" onclick="logout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <h1 id="sectionTitle">Analytics Overview</h1>
+                <div id="adminName">Admin User</div>
+            </header>
+
+            <!-- Analytics Section -->
+            <section id="analytics" class="section active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statVehicles">0</div>
+                        <div class="stat-label">Total Vehicles</div>
+                    </div>
+                    <div class="stat-card" style="border-bottom: 3px solid var(--primary);">
+                        <div class="stat-value" id="statBookings">0</div>
+                        <div class="stat-label">Total Bookings</div>
+                    </div>
+                    <div class="stat-card" style="border-bottom: 3px solid var(--success);">
+                        <div class="stat-value" id="statConfirmed" style="color: var(--success);">0</div>
+                        <div class="stat-label">Confirmed</div>
+                    </div>
+                    <div class="stat-card" style="border-bottom: 3px solid var(--error);">
+                        <div class="stat-value" id="statRejected" style="color: var(--error);">0</div>
+                        <div class="stat-label">Rejected</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 24px;">Booking Trends (Monthly)</h3>
+                    <canvas id="bookingsChart" height="100"></canvas>
+                </div>
+
+                <div class="chart-container" style="margin-top: 24px;">
+                    <h3 style="margin-bottom: 24px;">Vehicle Performance (Yearly)</h3>
+                    <canvas id="yearlyChart" height="100"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 24px;">Vehicle Usage Trends (Monthly)</h3>
+                    <canvas id="vehicleChart" height="100"></canvas>
+                </div>
+            </section>
+
+            <!-- Booking Requests Section -->
+            <section id="requests" class="section">
+                <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2>Incoming Booking Requests</h2>
+                        <div id="requestStats" style="font-size: 14px; color: var(--text-secondary);">Total: <span id="totalRequests">0</span></div>
+                    </div>
+                    <div class="filters-row" style="display: flex; gap: 12px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">
+                        <div class="filter-group">
+                            <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Vehicle Type</label>
+                            <select id="filterRequestVehicle" class="form-input" style="width: 140px; padding: 6px;" onchange="applyRequestFilters()">
+                                <option value="all">All Vehicles</option>
+                                <option value="bus">Bus</option>
+                                <option value="car">Car</option>
+                                <option value="van">Van</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Status</label>
+                            <select id="filterRequestStatus" class="form-input" style="width: 140px; padding: 6px;" onchange="applyRequestFilters()">
+                                <option value="all">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="cancelled">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Month</label>
+                            <select id="filterRequestMonth" class="form-input" style="width: 120px; padding: 6px;" onchange="applyRequestFilters()">
+                                <option value="all">All Months</option>
+                                <option value="0">January</option>
+                                <option value="1">February</option>
+                                <option value="2">March</option>
+                                <option value="3">April</option>
+                                <option value="4">May</option>
+                                <option value="5">June</option>
+                                <option value="6">July</option>
+                                <option value="7">August</option>
+                                <option value="8">September</option>
+                                <option value="9">October</option>
+                                <option value="10">November</option>
+                                <option value="11">December</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Year</label>
+                            <select id="filterRequestYear" class="form-input" style="width: 100px; padding: 6px;" onchange="applyRequestFilters()">
+                                <option value="all">All Years</option>
+                                <option value="2024">2024</option>
+                                <option value="2025">2025</option>
+                                <option value="2026">2026</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Contact</th>
+                                <th>Travel Route</th>
+                                <th>Dates</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requestsTableBody">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Fleet Management Section -->
+            <section id="fleet" class="section">
+                <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2>Active Fleet</h2>
+                        <button class="btn btn-primary" onclick="openVehicleModal()"><i class="fa-solid fa-plus"></i> Add Vehicle</button>
+                    </div>
+                    <div class="filters-row" style="display: flex; gap: 12px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">
+                        <div class="filter-group">
+                            <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Category</label>
+                            <select id="filterFleetCategory" class="form-input" style="width: 140px; padding: 6px;" onchange="applyFleetFilters()">
+                                <option value="all">All Categories</option>
+                                <option value="bus">Bus</option>
+                                <option value="car">Car</option>
+                                <option value="van">Van</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Sub-Model</label>
+                            <input type="text" id="filterFleetSubModel" class="form-input" placeholder="Search sub-model..." style="width: 180px; padding: 8px;" onkeyup="applyFleetFilters()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Vehicle</th>
+                                <th>Media</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fleetTableBody">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="bookings" class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2>All Bookings</h2>
+                    <div class="filters-row" style="display: flex; gap: 12px;">
+                        <select id="filterBookingVehicle" class="form-input" style="width: 140px; padding: 6px;" onchange="applyBookingFilters()">
+                            <option value="all">All Vehicles</option>
+                            <option value="bus">Bus</option>
+                            <option value="car">Car</option>
+                            <option value="van">Van</option>
+                        </select>
+                        <select id="filterBookingStatus" class="form-input" style="width: 140px; padding: 6px;" onchange="applyBookingFilters()">
+                            <option value="all">All Status</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="cancelled">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>User</th>
+                                <th>Vehicle</th>
+                                <th>Dates</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookingsTableBody">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+
+
+    <!-- Staff/Users Section Removed -->
+        </main>
+    </div>
+
+    <!-- Vehicle Modal -->
+    <div class="modal" id="vehicleModal">
+        <div class="modal-content">
+            <h2 id="modalTitle" style="margin-bottom: 24px;">Add New Vehicle</h2>
+            <form id="vehicleForm" class="grid-form">
+                <div class="form-group">
+                    <label>Vehicle Name</label>
+                    <input type="text" id="vName" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="vCategory" onchange="updateSubCategories()">
+                        <option value="">Select Category</option>
+                        <option value="bus">Bus</option>
+                        <option value="van">Vans</option>
+                        <option value="car">Cars</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Card Name (Label)</label>
+                    <input type="text" id="vType" placeholder="e.g. LUXURY" required>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Card Description</label>
+                    <textarea id="vDesc" placeholder="e.g. Premium luxury service" rows="2" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px 16px; color: white;" required></textarea>
+                </div>
+                <!-- Hidden fields with default values -->
+                <input type="hidden" id="vPlate" value="TBD">
+                <input type="hidden" id="vRate" value="0">
+                <input type="hidden" id="vCapacity" value="0">
+                <input type="hidden" id="vLocation" value="N/A">
+                <input type="hidden" id="vFuel" value="petrol">
+                <div style="grid-column: span 2; display: flex; gap: 12px; justify-content: flex-end; margin-top: 12px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Vehicle</button>
+                </div>
+            </form>
+
+            <div id="mediaManagement" style="display: none; margin-top: 32px; border-top: 1px solid var(--glass-border); padding-top: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>Photos & Videos</h3>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="mediaFilter" onchange="filterModalMedia()" style="padding: 6px 12px; font-size: 12px; border-radius: 8px; background: rgba(255,255,255,0.1); color: white; border: 1px solid var(--glass-border);">
+                            <option value="all">All Media</option>
+                            <option value="image">Images</option>
+                            <option value="video">Videos</option>
+                        </select>
+                        <button class="btn btn-success" style="padding: 6px 12px; font-size: 12px; background: var(--success); color: white; border: none; border-radius: 8px;" onclick="addGeneralMedia()"><i class="fa-solid fa-image"></i> General Cover</button>
+                        <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="addMedia()"><i class="fa-solid fa-cloud-arrow-up"></i> Add More</button>
+                    </div>
+                </div>
+                <div class="media-grid" id="modalMediaGrid">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div class="modal" id="userModal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 24px;">Add Admin User</h2>
+            <form id="userForm" class="grid-form">
+                <div class="form-group"><label>Full Name</label><input type="text" id="uName" required></div>
+                <div class="form-group"><label>Username</label><input type="text" id="uUsername" required></div>
+                <div class="form-group"><label>Email</label><input type="email" id="uEmail" required></div>
+                <div class="form-group"><label>Phone</label><input type="text" id="uPhone" required></div>
+                <div class="form-group"><label>Role</label><select id="uRole"><option value="admin">Admin</option><option value="manager">Manager</option></select></div>
+                <div class="form-group"><label>Password</label><input type="password" id="uPassword" required></div>
+                <div style="grid-column: span 2; display: flex; gap: 12px; justify-content: flex-end; margin-top: 12px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Request Details Modal -->
+    <div class="modal" id="requestModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <h2 style="margin-bottom: 24px;">Booking Inquiry Details</h2>
+            <div id="requestDetailsContent" style="color: var(--text-primary); font-size: 15px; line-height: 1.8;">
+                <!-- Loaded dynamically -->
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;" id="requestModalActions">
+                <button type="button" class="btn btn-outline" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden File Input for Media -->
+    <input type="file" id="mediaInput" style="display: none;" multiple onchange="handleMediaUpload(event)">
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        const token = localStorage.getItem('token');
+        let currentVehicleId = null;
+        let vehicleMediaList = []; // Local cache of current vehicle media for filtering
+        
+        // Chart instances
+        let bookingsChartInst = null;
+        let yearlyChartInst = null;
+        let vehicleChartInst = null;
+
+        // Data Caching for Filtering
+        let allRequests = [];
+        let allFleet = [];
+        let allBookings = [];
+
+        const CATEGORY_MODELS = {
+            bus: ['Bus-1', 'Bus-2', 'Bus-3', 'Bus-4', 'Bus-5', 'Bus-6', 'Bus-7', 'Bus-8', 'Bus-9', 'Bus-10'],
+            van: ['Van-1', 'Van-2', 'Van-3', 'Van-4', 'Van-5', 'Van-6', 'Van-7', 'Van-8', 'Van-9', 'Van-10'],
+            car: ['BMW', 'Audi', 'Mercedes', 'Innova', 'Crysta', 'Fortuner']
+        };
+
+        function updateSubCategories(defaultValue = '') {
+            // Logic removed as it is now a text input
+            if (defaultValue) document.getElementById('vType').value = defaultValue;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!token) {
+                window.location.href = 'admin-login.html';
+                return;
+            }
+
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user?.role !== 'admin') {
+                alert('Unauthorized Access');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            document.getElementById('adminName').textContent = user.name || user.username;
+            
+            setupNavigation();
+            loadAnalytics();
+            loadRequests();
+            loadFleet();
+            loadBookings();
+        });
+
+        function setupNavigation() {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const sectionId = link.getAttribute('data-section');
+                    
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    
+                    link.classList.add('active');
+                    document.getElementById(sectionId).classList.add('active');
+                    document.getElementById('sectionTitle').textContent = link.textContent.trim();
+                    
+                    if (sectionId === 'analytics') loadAnalytics();
+                    if (sectionId === 'requests') loadRequests();
+                    if (sectionId === 'fleet') loadFleet();
+                });
+            });
+        }
+
+        // ================= Requests =================
+
+        async function loadRequests() {
+            try {
+                const response = await fetch(`${API_URL}/admin/booking-requests`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const requests = await response.json();
+                allRequests = requests || [];
+                
+                if (!Array.isArray(allRequests)) {
+                    console.error('Expected array for requests, got:', allRequests);
+                    return;
+                }
+
+                applyRequestFilters(); // This will handle initial render and stats
+            } catch (err) {
+                console.error('Error loading requests:', err);
+            }
+        }
+
+        function applyRequestFilters() {
+            const vehicleFilter = document.getElementById('filterRequestVehicle').value;
+            const statusFilter = document.getElementById('filterRequestStatus').value;
+            const monthFilter = document.getElementById('filterRequestMonth').value;
+            const yearFilter = document.getElementById('filterRequestYear').value;
+
+            const filtered = allRequests.filter(r => {
+                const startDate = new Date(r.start_date);
+                const matchVehicle = vehicleFilter === 'all' || (r.mode_of_transport || '').toLowerCase() === vehicleFilter;
+                const matchStatus = statusFilter === 'all' || r.status === statusFilter;
+                const matchMonth = monthFilter === 'all' || String(startDate.getMonth()) === monthFilter;
+                const matchYear = yearFilter === 'all' || String(startDate.getFullYear()) === yearFilter;
+                
+                return matchVehicle && matchStatus && matchMonth && matchYear;
+            });
+
+            document.getElementById('totalRequests').textContent = filtered.length;
+            renderRequestsTable(filtered);
+        }
+
+        function renderRequestsTable(requests) {
+            const body = document.getElementById('requestsTableBody');
+            body.innerHTML = '';
+
+            requests.forEach(r => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div style="font-weight: 700;">${r.customer_name}</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">Rec: ${new Date(r.created_at).toLocaleDateString()}</div>
+                    </td>
+                    <td>
+                        <div>${r.customer_phone}</div>
+                    </td>
+                    <td>
+                        <div style="font-size: 13px;">${r.pickup_location} → ${r.destination}</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">${r.mode_of_transport ? r.mode_of_transport + ' | ' : ''}${r.purpose_of_trip}</div>
+                    </td>
+                    <td>
+                        <div>${new Date(r.start_date).toLocaleDateString()} - ${new Date(r.end_date).toLocaleDateString()}</div>
+                        <div style="font-size: 11px; color: var(--primary); font-weight: 700;">${r.total_days} Days</div>
+                    </td>
+                    <td><span style="color: ${r.status === 'pending' ? '#f59e0b' : (r.status === 'confirmed' ? '#10b981' : '#ef4444')}">${r.status.toUpperCase()}</span></td>
+                    <td>
+                        <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;" onclick="viewRequestDetails('${r.id}')">View</button>
+                    </td>
+                `;
+                body.appendChild(row);
+            });
+        }
+
+        function viewRequestDetails(id) {
+            const req = allRequests.find(r => String(r.id) === String(id));
+            if (!req) return showAlert('Request not found', 'error');
+
+            const content = document.getElementById('requestDetailsContent');
+            content.innerHTML = `
+                <div style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; border: 1px solid var(--glass-border);">
+                    <p><strong>Customer:</strong> ${req.customer_name}</p>
+                    <p><strong>Phone:</strong> ${req.customer_phone}</p>
+                    <p><strong>Route:</strong> ${req.pickup_location} → ${req.destination}</p>
+                    <p><strong>Purpose:</strong> ${req.purpose_of_trip}</p>
+                    <p><strong>Transport Mode:</strong> ${req.mode_of_transport || 'N/A'}</p>
+                    <p><strong>Places to Visit:</strong> ${req.visited_places || 'N/A'}</p>
+                    <p><strong>Dates:</strong> ${new Date(req.start_date).toLocaleDateString()} to ${req.end_date ? new Date(req.end_date).toLocaleDateString() : 'N/A'}</p>
+                    <p><strong>Status:</strong> <span style="color: ${req.status === 'pending' ? '#f59e0b' : (req.status === 'confirmed' ? '#10b981' : '#ef4444')}">${(req.status || 'pending').toUpperCase()}</span></p>
+                </div>
+            `;
+            
+            const actions = document.getElementById('requestModalActions');
+            if (req.status === 'pending' || req.status === 'confirmed') {
+                actions.innerHTML = `
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Close</button>
+                    <button type="button" class="btn" style="background: var(--error); color: white;" onclick="updateRequestStatus('${req.id}', 'cancelled')">Reject</button>
+                    <button type="button" class="btn btn-success" style="background: var(--success); color: white;" onclick="updateRequestStatus('${req.id}', 'confirmed')" ${req.status === 'confirmed' ? 'disabled' : ''}>${req.status === 'confirmed' ? 'Confirmed' : 'Confirm'}</button>
+                `;
+            } else {
+                actions.innerHTML = `<button type="button" class="btn btn-outline" onclick="closeModal()">Close</button>`;
+            }
+
+            document.getElementById('requestModal').style.display = 'flex';
+        }
+
+        async function updateRequestStatus(id, status) {
+            try {
+                const response = await fetch(`${API_URL}/admin/booking-requests/${id}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ status })
+                });
+
+                if (response.ok) {
+                    showAlert('Inquiry ' + status + ' successfully.', 'success');
+                    closeModal();
+                    loadRequests(); // Refresh requests table
+                    loadBookings(); // Refresh unified bookings list
+                } else {
+                    throw new Error('Failed to update status');
+                }
+            } catch (err) {
+                showAlert('Error updating status: ' + err.message, 'error');
+            }
+        }
+
+        // ================= Analytics =================
+        async function loadAnalytics() {
+            try {
+                const response = await fetch(`${API_URL}/admin/analytics`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                // Stats
+                document.getElementById('statVehicles').textContent = data.totalVehicles;
+                document.getElementById('statBookings').textContent = data.totalBookings;
+                document.getElementById('statConfirmed').textContent = data.confirmedCount || 0;
+                document.getElementById('statRejected').textContent = data.rejectedCount || 0;
+
+                // Render Charts
+                renderMonthlyChart(data.monthlyStats || {});
+                renderYearlyChart(data.yearlyStats || {});
+                renderVehicleTypeTrends(data.monthlyStats || {});
+
+                // Stat metrics for vehicles
+                document.getElementById('statVehicles').textContent = data.totalVehicles;
+            } catch (err) {
+                console.error('Error loading analytics:', err);
+            }
+        }
+
+        function renderMonthlyChart(monthlyData) {
+            const ctx = document.getElementById('bookingsChart').getContext('2d');
+            if (bookingsChartInst) bookingsChartInst.destroy();
+
+            const labels = Object.keys(monthlyData).sort();
+            const confirmed = labels.map(l => monthlyData[l].confirmed);
+            const rejected = labels.map(l => monthlyData[l].rejected);
+
+            bookingsChartInst = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Confirmed',
+                            data: confirmed,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#10b981'
+                        },
+                        {
+                            label: 'Rejected',
+                            data: rejected,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointBackgroundColor: '#ef4444'
+                        }
+                    ]
+                },
+                options: {
+                    plugins: { legend: { display: true, labels: { color: 'white' } } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } },
+                        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } }
+                    }
+                }
+            });
+        }
+
+        function renderYearlyChart(yearlyData) {
+            const ctx = document.getElementById('yearlyChart').getContext('2d');
+            if (yearlyChartInst) yearlyChartInst.destroy();
+
+            const labels = Object.keys(yearlyData).sort();
+            const confirmed = labels.map(l => yearlyData[l].confirmed);
+            const rejected = labels.map(l => yearlyData[l].rejected);
+
+            yearlyChartInst = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Confirmed',
+                            data: confirmed,
+                            backgroundColor: '#10b981',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Rejected',
+                            data: rejected,
+                            backgroundColor: '#ef4444',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    plugins: { legend: { display: true, labels: { color: 'white' } } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
+                        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } }
+                    }
+                }
+            });
+        }
+
+        function renderVehicleTypeTrends(monthlyData) {
+            const ctx = document.getElementById('vehicleChart').getContext('2d');
+            if (vehicleChartInst) vehicleChartInst.destroy();
+
+            const labels = Object.keys(monthlyData).sort();
+            const busData = labels.map(l => monthlyData[l].bus || 0);
+            const carData = labels.map(l => monthlyData[l].car || 0);
+            const vanData = labels.map(l => monthlyData[l].van || 0);
+
+            vehicleChartInst = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Bus',
+                            data: busData,
+                            borderColor: '#f59e0b', // Amber/Orange
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#f59e0b'
+                        },
+                        {
+                            label: 'Car',
+                            data: carData,
+                            borderColor: '#3b82f6', // Blue
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#3b82f6'
+                        },
+                        {
+                            label: 'Van',
+                            data: vanData,
+                            borderColor: '#a855f7', // Purple
+                            backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#a855f7'
+                        }
+                    ]
+                },
+                options: {
+                    plugins: { legend: { display: true, labels: { color: 'white' } } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', stepSize: 1 } },
+                        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } }
+                    }
+                }
+            });
+        }
+
+        // ================= Fleet Management =================
+
+        async function loadFleet() {
+            try {
+                const response = await fetch(`${API_URL}/vehicles`);
+                const vehicles = await response.json();
+                allFleet = vehicles || [];
+                
+                if (!Array.isArray(allFleet)) {
+                    console.error('Expected array for fleet, got:', allFleet);
+                    return;
+                }
+
+                document.getElementById('statVehicles').textContent = allFleet.length;
+                applyFleetFilters();
+            } catch (err) {
+                console.error('Error loading fleet:', err);
+            }
+        }
+
+        function applyFleetFilters() {
+            const catFilter = document.getElementById('filterFleetCategory').value;
+            const submodelFilter = document.getElementById('filterFleetSubModel').value.toLowerCase();
+
+            const filtered = allFleet.filter(v => {
+                const cat = v.features?.category || (v.type || '').split(':')[0] || '';
+                const model = v.features?.model || (v.type || '').split(':')[1] || '';
+                
+                const matchCat = catFilter === 'all' || cat.toLowerCase() === catFilter;
+                const matchSubModel = !submodelFilter || v.name.toLowerCase().includes(submodelFilter) || model.toLowerCase().includes(submodelFilter);
+                return matchCat && matchSubModel;
+            });
+
+            renderFleetTable(filtered);
+        }
+
+        function renderFleetTable(vehicles) {
+            const body = document.getElementById('fleetTableBody');
+            body.innerHTML = '';
+
+            vehicles.forEach(v => {
+                const primary = v.vehicle_media?.find(m => m.is_primary) || v.vehicle_media?.[0];
+                const cat = v.features?.category || (v.type || '').split(':')[0];
+                const model = v.features?.model || (v.type || '').split(':')[1];
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div style="font-weight: 700;">${v.name}</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">${(model || cat || v.type || 'N/A').toUpperCase()} • ${v.license_plate}</div>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 4px;">
+                            ${primary ? `<img src="${primary.url}" style="width: 40px; height: 24px; object-fit: cover; border-radius: 4px;">` : 'No Media'}
+                            <span style="font-size: 11px; color: var(--text-secondary);">+${v.vehicle_media?.length || 0} items</span>
+                        </div>
+                    </td>
+                    <td class="action-btns">
+                        <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;" onclick="editVehicle('${v.id}')"><i class="fa-solid fa-pen"></i> Manage</button>
+                        <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteVehicle('${v.id}')"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                body.appendChild(row);
+            });
+        }
+
+        function openVehicleModal(v = null) {
+            currentVehicleId = v ? v.id : null;
+            document.getElementById('modalTitle').textContent = v ? 'Manage Vehicle' : 'Add New Vehicle';
+            document.getElementById('mediaManagement').style.display = v ? 'block' : 'none';
+            
+            if (v) {
+                const cat = v.features?.category || (v.type || '').split(':')[0];
+                const model = v.features?.model || (v.type || '').split(':')[1];
+                document.getElementById('vName').value = v.name;
+                document.getElementById('vCategory').value = cat || '';
+                updateSubCategories(model || cat || v.type);
+                document.getElementById('vPlate').value = v.license_plate;
+                document.getElementById('vRate').value = v.daily_rate;
+                document.getElementById('vCapacity').value = v.capacity;
+                document.getElementById('vLocation').value = v.location;
+                document.getElementById('vFuel').value = v.fuel_type;
+                document.getElementById('vDesc').value = v.description || '';
+                loadVehicleMedia(v.id);
+            } else {
+                document.getElementById('vehicleForm').reset();
+            }
+            
+            document.getElementById('vehicleModal').style.display = 'flex';
+        }
+
+        async function editVehicle(id) {
+            const resp = await fetch(`${API_URL}/vehicles/${id}`);
+            const v = await resp.json();
+            openVehicleModal(v);
+        }
+
+        async function deleteVehicle(id) {
+            if (!confirm('Permanently delete this vehicle and all its media?')) return;
+            try {
+                const response = await fetch(`${API_URL}/vehicles/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    showAlert('Vehicle deleted successfully', 'success');
+                    loadFleet();
+                } else {
+                    const err = await response.json();
+                    showAlert(err.error || 'Error deleting vehicle', 'error');
+                }
+            } catch (err) {
+                showAlert('Network error occurred', 'error');
+            }
+        }
+
+        document.getElementById('vehicleForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('vName').value,
+                category: document.getElementById('vCategory').value,
+                type: document.getElementById('vType').value,
+                license_plate: document.getElementById('vPlate').value === 'TBD' ? 'AUTO-' + Date.now() : document.getElementById('vPlate').value,
+                daily_rate: document.getElementById('vRate').value,
+                capacity: document.getElementById('vCapacity').value,
+                location: document.getElementById('vLocation').value,
+                fuel_type: document.getElementById('vFuel').value,
+                description: document.getElementById('vDesc').value
+            };
+
+            const method = currentVehicleId ? 'PATCH' : 'POST';
+            const url = currentVehicleId ? `${API_URL}/vehicles/${currentVehicleId}/status` : `${API_URL}/vehicles`;
+
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    const savedVehicle = await response.json();
+                    showAlert('Saved successfully', 'success');
+                    
+                    if (!currentVehicleId) {
+                        // If it was a new vehicle, open it in "Manage" mode to allow media upload
+                        editVehicle(savedVehicle.id);
+                    } else {
+                        closeModal();
+                    }
+                }
+            } catch (err) {
+                showAlert('Error saving vehicle', 'error');
+            }
+        };
+
+        // ================= Media Management =================
+
+        async function loadVehicleMedia(id) {
+            currentVehicleId = id;
+            try {
+                const response = await fetch(`${API_URL}/vehicles/${id}`);
+                const vehicle = await response.json();
+                
+                vehicleMediaList = vehicle.vehicle_media || [];
+                renderModalMedia(vehicleMediaList);
+                
+                document.getElementById('mediaManagement').style.display = 'block';
+            } catch (err) {
+                console.error('Error loading media:', err);
+            }
+        }
+
+        function filterModalMedia() {
+            const type = document.getElementById('mediaFilter').value;
+            const filtered = type === 'all' 
+                ? vehicleMediaList 
+                : vehicleMediaList.filter(m => m.media_type === type);
+            renderModalMedia(filtered);
+        }
+
+        function renderModalMedia(mediaItems) {
+            const grid = document.getElementById('modalMediaGrid');
+            grid.innerHTML = '';
+            
+            mediaItems.sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0)).forEach(m => {
+                const card = document.createElement('div');
+                card.className = 'media-card';
+                card.innerHTML = `
+                    ${m.media_type === 'image' 
+                        ? `<img src="${m.url}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 8px;">` 
+                        : `<div style="width: 100%; height: 100px; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-video"></i></div>`}
+                    <div class="media-actions">
+                        ${!m.is_primary ? `<button class="media-btn" style="background: var(--primary);" onclick="setPrimaryMedia('${m.id}')" title="Set as Primary"><i class="fa-solid fa-star"></i></button>` : '<span class="primary-badge">Primary</span>'}
+                        <button class="media-btn" style="background: #ef4444;" onclick="deleteMedia('${m.id}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        <button class="media-btn" style="background: #3b82f6;" onclick="replaceMedia('${m.id}')" title="Replace"><i class="fa-solid fa-repeat"></i></button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        let isUploadingGeneral = false;
+
+        function addGeneralMedia() {
+            isUploadingGeneral = true;
+            document.getElementById('mediaInput').click();
+        }
+
+        function addMedia() {
+            isUploadingGeneral = false;
+            const choice = confirm("Click OK to UPLOAD a file, or CANCEL to enter a URL.");
+            if (choice) {
+                document.getElementById('mediaInput').click();
+            } else {
+                addMediaByUrl();
+            }
+        }
+
+        async function addMediaByUrl() {
+            const url = prompt('Enter Image or Video URL:');
+            if (!url) return;
+            const type = url.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image';
+            saveMediaToDb({ media_type: type, url, is_primary: false });
+        }
+
+        async function saveMediaToDb(mediaData) {
+            try {
+                const response = await fetch(`${API_URL}/vehicles/${currentVehicleId}/media`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(mediaData)
+                });
+                
+                if (response.ok) {
+                    loadVehicleMedia(currentVehicleId);
+                    loadFleet();
+                }
+            } catch (err) {
+                showAlert('Error saving media record', 'error');
+            }
+        }
+
+        async function setPrimaryMedia(id) {
+            try {
+                const response = await fetch(`${API_URL}/media/${id}/primary`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    loadVehicleMedia(currentVehicleId);
+                    loadFleet();
+                }
+            } catch (err) {
+                showAlert('Error setting primary media', 'error');
+            }
+        }
+
+        let replaceMediaId = null;
+
+        async function replaceMedia(id) {
+            replaceMediaId = id;
+            document.getElementById('mediaInput').click();
+        }
+
+        async function deleteMedia(id) {
+            if (!confirm('Delete this media?')) return;
+            try {
+                const response = await fetch(`${API_URL}/media/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    showAlert('Media deleted', 'success');
+                    loadVehicleMedia(currentVehicleId);
+                } else {
+                    showAlert('Failed to delete media', 'error');
+                }
+            } catch (err) {
+                showAlert('Error deleting media', 'error');
+            }
+        }
+
+        async function handleMediaUpload(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            showAlert(`Uploading ${files.length} file(s)...`, 'success');
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const uploadResp = await fetch(`${API_URL}/admin/upload`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: formData
+                    });
+                    
+                    if (!uploadResp.ok) {
+                        const errorData = await uploadResp.json();
+                        throw new Error(errorData.error || 'Upload failed');
+                    }
+
+                    const result = await uploadResp.json();
+
+                    if (replaceMediaId) {
+                        // Replace mode: delete old then save new
+                        await fetch(`${API_URL}/media/${replaceMediaId}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        replaceMediaId = null;
+                    }
+
+                    if (result.url) {
+                        await saveMediaToDb({
+                            media_type: result.type || (file.type.startsWith('video') ? 'video' : 'image'),
+                            url: result.url,
+                            // Only set primary for the very first file if 'isUploadingGeneral' is true
+                            is_primary: isUploadingGeneral && i === 0
+                        });
+                    } else {
+                        throw new Error('Server did not return a valid URL');
+                    }
+                } catch (err) {
+                    console.error('Upload flow error for file:', file.name, err);
+                    showAlert(`Upload failed for ${file.name}: ${err.message}`, 'error');
+                }
+            }
+
+            isUploadingGeneral = false;
+            showAlert('All files processed successfully', 'success');
+            event.target.value = ''; // Reset input
+        }
+
+        // ================= Staff/Users =================
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_URL}/users`, {
+                    // Need a GET /api/users endpoint on backend? 
+                    // For now, let's assume it exists or use dummy
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const users = await response.json();
+                document.getElementById('statCustomers').textContent = users.length;
+                
+                const body = document.getElementById('usersTableBody');
+                body.innerHTML = '';
+                users.forEach(u => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${u.name || 'N/A'}</td>
+                        <td>${u.username}</td>
+                        <td>${u.role.toUpperCase()}</td>
+                        <td><span style="color: #10b981">Active</span></td>
+                        <td><button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;">Edit</button></td>
+                    `;
+                    body.appendChild(row);
+                });
+            } catch (err) {
+                console.warn('Users endpoint failed');
+            }
+        }
+
+        // ================= Helpers =================
+
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        function showAlert(msg, type) {
+            const el = document.getElementById('customAlert');
+            el.textContent = msg;
+            el.style.display = 'block';
+            el.style.background = type === 'success' ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)';
+            el.style.backdropFilter = 'blur(10px)';
+            
+            setTimeout(() => { 
+                el.style.opacity = '0';
+                setTimeout(() => { 
+                    el.style.display = 'none'; 
+                    el.style.opacity = '1';
+                }, 300);
+            }, 3000);
+        }
+
+        async function loadBookings() {
+            try {
+                const response = await fetch(`${API_URL}/admin/all-bookings`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const bookings = await response.json();
+                allBookings = bookings || [];
+                
+                if (!Array.isArray(allBookings)) {
+                    console.error('Expected array for bookings, got:', allBookings);
+                    return;
+                }
+
+                applyBookingFilters();
+            } catch (err) {
+                console.error('Error loading bookings:', err);
+            }
+        }
+
+        function applyBookingFilters() {
+            const vehicleFilter = document.getElementById('filterBookingVehicle').value;
+            const statusFilter = document.getElementById('filterBookingStatus').value;
+
+            const filtered = allBookings.filter(b => {
+                const type = (b.vehicle_type || b.mode_of_transport || '').toLowerCase();
+                const matchVehicle = vehicleFilter === 'all' || type === vehicleFilter;
+                const matchStatus = statusFilter === 'all' || b.status === statusFilter;
+                return matchVehicle && matchStatus;
+            });
+
+            renderBookingsTable(filtered);
+        }
+
+        function renderBookingsTable(bookings) {
+            const body = document.getElementById('bookingsTableBody');
+            body.innerHTML = '';
+
+            bookings.forEach(b => {
+                const row = document.createElement('tr');
+                const isInquiry = b.is_inquiry;
+                const userDisplay = isInquiry ? 
+                    `<div style="font-weight: 700; color: var(--primary);">${b.customer_name || 'Public'}</div><div style="font-size: 10px; opacity: 0.7;">INQUIRY</div>` : 
+                    `<div style="font-weight: 700;">USER #${(b.user_id || '').slice(0,5)}</div><div style="font-size: 10px; opacity: 0.7;">RESV</div>`;
+
+                row.innerHTML = `
+                    <td>#${(b.id || '').toString().slice(0,8)}</td>
+                    <td>${userDisplay}</td>
+                    <td>
+                        <div style="font-weight: 700;">${b.vehicle_name || 'Vehicle'}</div>
+                        <div style="font-size: 10px; opacity: 0.7; color: var(--primary);">${(b.vehicle_type || b.mode_of_transport || 'N/A').toUpperCase()}</div>
+                    </td>
+                    <td>${new Date(b.start_date).toLocaleDateString()} - ${b.end_date ? new Date(b.end_date).toLocaleDateString() : 'TBD'}</td>
+                    <td><span style="color: ${b.status === 'confirmed' ? '#10b981' : (b.status === 'pending' ? '#f59e0b' : '#ef4444')}">${b.status.toUpperCase()}</span></td>
+                `;
+                body.appendChild(row);
+            });
+        }
+
+        let currentAssignRequestId = null;
+        function openAssignModal(requestId) {
+            // Close the previous modal first
+            document.getElementById('requestModal').style.display = 'none';
+            
+            currentAssignRequestId = requestId;
+            const req = allRequests.find(r => String(r.id) === String(requestId));
+            if (!req) return showAlert('Request not found', 'error');
+
+            const type = (req.mode_of_transport || '').toLowerCase();
+            const select = document.getElementById('assignVehicleSelect');
+            select.innerHTML = '<option value="">-- Select a Vehicle --</option>';
+
+            const available = (allFleet || []).filter(v => {
+                const vStatus = (v.status || '').toLowerCase();
+                const vCategory = (v.features?.category || v.type || '').toLowerCase();
+                const requestedType = type.toLowerCase();
+                
+                return vStatus === 'available' && (
+                    vCategory.includes(requestedType) || 
+                    requestedType.includes(vCategory) ||
+                    (requestedType === 'van' && vCategory === 'vans') ||
+                    (requestedType === 'bus' && vCategory === 'mini bus')
+                );
+            });
+
+            if (available.length === 0) {
+                select.innerHTML += '<option disabled>No available vehicles of this type</option>';
+            } else {
+                available.forEach(v => {
+                    select.innerHTML += `<option value="${v.id}">${v.name} (${v.license_plate}) - ₹${v.daily_rate}/day</option>`;
+                });
+            }
+            document.getElementById('assignModal').style.display = 'flex';
+        }
+
+        async function submitVehicleAssignment() {
+            const vehicleId = document.getElementById('assignVehicleSelect').value;
+            const price = document.getElementById('assignVehiclePrice').value;
+            if (!vehicleId) return showAlert('Please select a vehicle', 'error');
+
+            const btn = document.getElementById('confirmAssignBtn');
+            btn.disabled = true; btn.textContent = 'Assigning...';
+
+            try {
+                const resp = await fetch(`${API_URL}/admin/booking-requests/${currentAssignRequestId}/assign`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vehicle_id: vehicleId, total_cost: price || 0 })
+                });
+
+                if (resp.ok) {
+                    showAlert('Vehicle assigned!', 'success');
+                    closeModal();
+                    loadRequests(); loadBookings(); loadFleet();
+                } else {
+                    const err = await resp.json();
+                    throw new Error(err.error || 'Assignment failed');
+                }
+            } catch (err) {
+                showAlert(err.message, 'error');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Confirm Assignment';
+            }
+        }
+    </script>
+</body>
+</html>
