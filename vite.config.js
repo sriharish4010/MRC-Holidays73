@@ -3,8 +3,12 @@
  * Production-ready build setup with optimization
  */
 
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { defineConfig } from 'vite';
 import compression from 'vite-plugin-compression';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
     plugins: [
@@ -41,6 +45,16 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         assetsDir: 'assets',
+
+        rollupOptions: {
+            input: {
+                main: resolve(__dirname, 'index.html'),
+                booking: resolve(__dirname, 'booking.html'),
+                adminLogin: resolve(__dirname, 'admin-login.html'),
+                adminDashboard: resolve(__dirname, 'admin-dashboard.html'),
+                userDashboard: resolve(__dirname, 'user-dashboard.html'),
+            },
+        },
 
         minify: 'terser',
         terserOptions: {
