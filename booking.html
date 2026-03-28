@@ -372,7 +372,7 @@
             };
 
             try {
-                const response = await fetch('http://localhost:5000/api/public/bookings', {
+                const response = await fetch('https://mrc-holidays.onrender.com/api/public/bookings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)

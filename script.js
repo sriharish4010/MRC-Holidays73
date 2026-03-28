@@ -128,7 +128,7 @@ const AppState = {
 
     async fetchData() {
         try {
-            const resp = await fetch('http://localhost:5000/api/vehicles');
+            const resp = await fetch('https://mrc-holidays.onrender.com/api/vehicles');
             this.allVehicles = await resp.json();
             this.updateAllItems();
         } catch (err) {

@@ -59,7 +59,7 @@ export const subscribeToUsers = (callback) => {
  */
 export const registerUser = async (email, password, name, phone) => {
     try {
-        const response = await fetch('http://localhost:5000/api/auth/register', {
+        const response = await fetch('https://mrc-holidays.onrender.com/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password, name, phone }),
@@ -87,7 +87,7 @@ export const registerUser = async (email, password, name, phone) => {
  */
 export const loginUser = async (email, password) => {
     try {
-        const response = await fetch('http://localhost:5000/api/auth/login', {
+        const response = await fetch('https://mrc-holidays.onrender.com/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
@@ -140,7 +140,7 @@ export const getToken = () => {
  */
 export const getVehicles = async () => {
     try {
-        const response = await fetch('http://localhost:5000/api/vehicles');
+        const response = await fetch('https://mrc-holidays.onrender.com/api/vehicles');
         if (!response.ok) throw new Error('Failed to fetch vehicles');
         return await response.json();
     } catch (err) {
@@ -154,7 +154,7 @@ export const getVehicles = async () => {
  */
 export const getVehicle = async (vehicleId) => {
     try {
-        const response = await fetch(`http://localhost:5000/api/vehicles/${vehicleId}`);
+        const response = await fetch(`https://mrc-holidays.onrender.com/api/vehicles/${vehicleId}`);
         if (!response.ok) throw new Error('Vehicle not found');
         return await response.json();
     } catch (err) {
@@ -169,7 +169,7 @@ export const getVehicle = async (vehicleId) => {
 export const createVehicle = async (vehicleData) => {
     try {
         const token = getToken();
-        const response = await fetch('http://localhost:5000/api/vehicles', {
+        const response = await fetch('https://mrc-holidays.onrender.com/api/vehicles', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -192,7 +192,7 @@ export const createVehicle = async (vehicleData) => {
 export const updateVehicleStatus = async (vehicleId, status) => {
     try {
         const token = getToken();
-        const response = await fetch(`http://localhost:5000/api/vehicles/${vehicleId}/status`, {
+        const response = await fetch(`https://mrc-holidays.onrender.com/api/vehicles/${vehicleId}/status`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -217,7 +217,7 @@ export const updateVehicleStatus = async (vehicleId, status) => {
 export const createBooking = async (vehicleId, startDate, endDate) => {
     try {
         const token = getToken();
-        const response = await fetch('http://localhost:5000/api/bookings', {
+        const response = await fetch('https://mrc-holidays.onrender.com/api/bookings', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -244,7 +244,7 @@ export const createBooking = async (vehicleId, startDate, endDate) => {
 export const getUserBookings = async () => {
     try {
         const token = getToken();
-        const response = await fetch('http://localhost:5000/api/bookings', {
+        const response = await fetch('https://mrc-holidays.onrender.com/api/bookings', {
             headers: {
                 'Authorization': `Bearer ${token}`,
             },
@@ -264,7 +264,7 @@ export const getUserBookings = async () => {
 export const cancelBooking = async (bookingId) => {
     try {
         const token = getToken();
-        const response = await fetch(`http://localhost:5000/api/bookings/${bookingId}/cancel`, {
+        const response = await fetch(`https://mrc-holidays.onrender.com/api/bookings/${bookingId}/cancel`, {
             method: 'PATCH',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -287,7 +287,7 @@ export const cancelBooking = async (bookingId) => {
 export const getUserProfile = async (userId) => {
     try {
         const token = getToken();
-        const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
+        const response = await fetch(`https://mrc-holidays.onrender.com/api/users/${userId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
             },
@@ -307,7 +307,7 @@ export const getUserProfile = async (userId) => {
 export const updateUserProfile = async (userId, profileData) => {
     try {
         const token = getToken();
-        const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
+        const response = await fetch(`https://mrc-holidays.onrender.com/api/users/${userId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -332,7 +332,7 @@ export const updateUserProfile = async (userId, profileData) => {
 export const getAnalytics = async () => {
     try {
         const token = getToken();
-        const response = await fetch('http://localhost:5000/api/admin/analytics', {
+        const response = await fetch('https://mrc-holidays.onrender.com/api/admin/analytics', {
             headers: {
                 'Authorization': `Bearer ${token}`,
             },
@@ -354,7 +354,7 @@ let ws = null;
  * Connect to WebSocket for real-time updates
  */
 export const connectWebSocket = (onMessage) => {
-    ws = new WebSocket('ws://localhost:5000');
+    ws = new WebSocket('wss://mrc-holidays.onrender.com');
 
     ws.onopen = () => {
         console.log('✅ WebSocket connected');
