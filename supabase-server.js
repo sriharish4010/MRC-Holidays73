@@ -244,7 +244,7 @@ app.post('/api/auth/login', async (req, res) => {
         let user = null;
 
         // Try email lookup first (since most accounts were created with email)
-        const { data: emailUser } = await supabase
+        const { data: emailUser } = await supabaseAdmin
             .from('users')
             .select('*')
             .eq('email', username);
@@ -253,7 +253,7 @@ app.post('/api/auth/login', async (req, res) => {
             user = emailUser[0];
         } else {
             // If not found by email, try username lookup
-            const { data: usernameUser } = await supabase
+            const { data: usernameUser } = await supabaseAdmin
                 .from('users')
                 .select('*')
                 .eq('username', username);
