@@ -6,6 +6,11 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://czocnfvusoybakoohwzm.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6b2NuZnZ1c295YmFrb29od3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MDc1NjcsImV4cCI6MjA4OTM4MzU2N30.NqTxA1elrisXHzYXCRQqON-q8Y-nWzUuRgnH6D-sor0';
 
+// Auto-detect local vs production API
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000/api'
+    : 'https://mrc-holidays.onrender.com/api';
+
 // Initialize Supabase client
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -59,7 +64,7 @@ export const subscribeToUsers = (callback) => {
  */
 export const registerUser = async (email, password, name, phone) => {
     try {
-        const response = await fetch('https://mrc-holidays.onrender.com/api/auth/register', {
+        const response = await fetch(`${API_URL}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password, name, phone }),
@@ -87,7 +92,7 @@ export const registerUser = async (email, password, name, phone) => {
  */
 export const loginUser = async (email, password) => {
     try {
-        const response = await fetch('https://mrc-holidays.onrender.com/api/auth/login', {
+        const response = await fetch(`${API_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
@@ -140,7 +145,7 @@ export const getToken = () => {
  */
 export const getVehicles = async () => {
     try {
-        const response = await fetch('https://mrc-holidays.onrender.com/api/vehicles');
+        const response = await fetch(`${API_URL}/vehicles`);
         if (!response.ok) throw new Error('Failed to fetch vehicles');
         return await response.json();
     } catch (err) {
@@ -154,7 +159,7 @@ export const getVehicles = async () => {
  */
 export const getVehicle = async (vehicleId) => {
     try {
-        const response = await fetch(`https://mrc-holidays.onrender.com/api/vehicles/${vehicleId}`);
+        const response = await fetch(`${API_URL}/vehicles/${vehicleId}`);
         if (!response.ok) throw new Error('Vehicle not found');
         return await response.json();
     } catch (err) {
@@ -169,7 +174,7 @@ export const getVehicle = async (vehicleId) => {
 export const createVehicle = async (vehicleData) => {
     try {
         const token = getToken();
-        const response = await fetch('https://mrc-holidays.onrender.com/api/vehicles', {
+        const response = await fetch(`${API_URL}/vehicles`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -192,7 +197,7 @@ export const createVehicle = async (vehicleData) => {
 export const updateVehicleStatus = async (vehicleId, status) => {
     try {
         const token = getToken();
-        const response = await fetch(`https://mrc-holidays.onrender.com/api/vehicles/${vehicleId}/status`, {
+        const response = await fetch(`${API_URL}/vehicles/${vehicleId}/status`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -217,7 +222,7 @@ export const updateVehicleStatus = async (vehicleId, status) => {
 export const createBooking = async (vehicleId, startDate, endDate) => {
     try {
         const token = getToken();
-        const response = await fetch('https://mrc-holidays.onrender.com/api/bookings', {
+        const response = await fetch(`${API_URL}/bookings`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -244,7 +249,7 @@ export const createBooking = async (vehicleId, startDate, endDate) => {
 export const getUserBookings = async () => {
     try {
         const token = getToken();
-        const response = await fetch('https://mrc-holidays.onrender.com/api/bookings', {
+        const response = await fetch(`${API_URL}/bookings`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
             },
@@ -264,7 +269,7 @@ export const getUserBookings = async () => {
 export const cancelBooking = async (bookingId) => {
     try {
         const token = getToken();
-        const response = await fetch(`https://mrc-holidays.onrender.com/api/bookings/${bookingId}/cancel`, {
+        const response = await fetch(`${API_URL}/bookings/${bookingId}/cancel`, {
             method: 'PATCH',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -287,7 +292,7 @@ export const cancelBooking = async (bookingId) => {
 export const getUserProfile = async (userId) => {
     try {
         const token = getToken();
-        const response = await fetch(`https://mrc-holidays.onrender.com/api/users/${userId}`, {
+        const response = await fetch(`${API_URL}/users/${userId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
             },
@@ -307,7 +312,7 @@ export const getUserProfile = async (userId) => {
 export const updateUserProfile = async (userId, profileData) => {
     try {
         const token = getToken();
-        const response = await fetch(`https://mrc-holidays.onrender.com/api/users/${userId}`, {
+        const response = await fetch(`${API_URL}/users/${userId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -332,7 +337,7 @@ export const updateUserProfile = async (userId, profileData) => {
 export const getAnalytics = async () => {
     try {
         const token = getToken();
-        const response = await fetch('https://mrc-holidays.onrender.com/api/admin/analytics', {
+        const response = await fetch(`${API_URL}/admin/analytics`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
             },
@@ -354,7 +359,11 @@ let ws = null;
  * Connect to WebSocket for real-time updates
  */
 export const connectWebSocket = (onMessage) => {
-    ws = new WebSocket('wss://mrc-holidays.onrender.com');
+    const WS_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'ws://localhost:5000'
+        : 'wss://mrc-holidays.onrender.com';
+
+    ws = new WebSocket(WS_URL);
 
     ws.onopen = () => {
         console.log('✅ WebSocket connected');

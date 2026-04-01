@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "id": "92ecec5e-60b3-45f4-9e19-275b0ad7bfc1",
+    "password_hash": "$2a$10$xTwrEdmioXfaXNsOAprF/uxCNuhpXixleK.mEW.trr8WJJPdaFZQS",
+    "name": "System Admin",
+    "phone": "1234567890",
+    "role": "admin",
+    "license_number": null,
+    "aadhar_number": null,
+    "address": null,
+    "date_of_birth": null,
+    "profile_image_url": null,
+    "is_active": true,
+    "last_login": null,
+    "created_at": "2026-03-23T13:49:29.461917",
+    "updated_at": "2026-03-23T13:49:29.461917",
+    "username": "admin",
+    "email": "admin@example.com"
+  }
+]

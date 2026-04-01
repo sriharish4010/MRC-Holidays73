@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ta">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -241,6 +241,33 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* Responsive Sidebar Styles */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 20px 0 50px rgba(0,0,0,0.5);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 24px 20px;
+            }
+            #menuToggle {
+                display: flex !important;
+            }
+            .header {
+                flex-direction: row;
+                gap: 16px;
+                margin-bottom: 30px;
+            }
+            .header h1 {
+                font-size: 20px;
+            }
+        }
+
         /* Charts */
         .chart-container {
             background: var(--glass-bg);
@@ -480,8 +507,18 @@
         <!-- Main Content -->
         <main class="main-content">
             <header class="header">
-                <h1 id="sectionTitle">Analytics Overview</h1>
-                <div id="adminName">Admin User</div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button id="menuToggle" class="btn btn-outline" style="display: none; padding: 8px 12px; border-radius: 10px;">
+                        <i class="fa-solid fa-bars-staggered"></i>
+                    </button>
+                    <h1 id="sectionTitle">Analytics Overview</h1>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 12px; border: 1px solid var(--glass-border);">
+                    <div style="width: 32px; height: 32px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <span id="adminName" style="font-weight: 600; font-size: 14px;">Admin User</span>
+                </div>
             </header>
 
             <!-- Analytics Section -->
@@ -769,7 +806,9 @@
     <input type="file" id="mediaInput" style="display: none;" multiple onchange="handleMediaUpload(event)">
 
     <script>
-        const API_URL = 'https://mrc-holidays.onrender.com/api';
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:5000/api'
+            : 'https://mrc-holidays.onrender.com/api';
         const token = localStorage.getItem('token');
         let currentVehicleId = null;
         let vehicleMediaList = []; // Local cache of current vehicle media for filtering
@@ -833,7 +872,33 @@
                     if (sectionId === 'analytics') loadAnalytics();
                     if (sectionId === 'requests') loadRequests();
                     if (sectionId === 'fleet') loadFleet();
+                    if (sectionId === 'bookings') loadBookings();
+
+                    // Close sidebar on mobile after clicking
+                    if (window.innerWidth <= 1024) {
+                        sidebar.classList.remove('active');
+                    }
                 });
+            });
+
+            // Mobile Sidebar Toggle
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            
+            if (menuToggle) {
+                menuToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    sidebar.classList.toggle('active');
+                });
+            }
+
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', (e) => {
+                if (window.innerWidth <= 1024 && sidebar.classList.contains('active')) {
+                    if (!sidebar.contains(e.target) && e.target !== menuToggle) {
+                        sidebar.classList.remove('active');
+                    }
+                }
             });
         }
 
@@ -845,11 +910,18 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const requests = await response.json();
-                allRequests = requests || [];
+                
+                if (requests && requests.error) {
+                    console.error('API Error:', requests.error);
+                    allRequests = [];
+                    return;
+                }
+
+                allRequests = Array.isArray(requests) ? requests : [];
                 
                 if (!Array.isArray(allRequests)) {
-                    console.error('Expected array for requests, got:', allRequests);
-                    return;
+                    console.error('Expected array for requests, got:', requests);
+                    allRequests = [];
                 }
 
                 applyRequestFilters(); // This will handle initial render and stats
@@ -1291,11 +1363,12 @@
         async function loadVehicleMedia(id) {
             currentVehicleId = id;
             try {
-                const response = await fetch(`${API_URL}/vehicles/${id}`);
-                const vehicle = await response.json();
+                const response = await fetch(`${API_URL}/vehicles/${id}/media`);
+                const media = await response.json();
                 
-                vehicleMediaList = vehicle.vehicle_media || [];
-                renderModalMedia(vehicleMediaList);
+                vehicleMediaList = media || [];
+                // Respect the current dropdown filter immediately upon load
+                filterModalMedia();
                 
                 document.getElementById('mediaManagement').style.display = 'block';
             } catch (err) {
@@ -1307,7 +1380,10 @@
             const type = document.getElementById('mediaFilter').value;
             const filtered = type === 'all' 
                 ? vehicleMediaList 
-                : vehicleMediaList.filter(m => m.media_type === type);
+                : vehicleMediaList.filter(m => {
+                    const mType = (m.media_type || m.type || '').toLowerCase();
+                    return mType.startsWith(type.toLowerCase().substring(0, 3)); // Match "ima" for "image/images"
+                });
             renderModalMedia(filtered);
         }
 
@@ -1318,8 +1394,10 @@
             mediaItems.sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0)).forEach(m => {
                 const card = document.createElement('div');
                 card.className = 'media-card';
+                const mType = (m.media_type || m.type || '').toLowerCase();
+
                 card.innerHTML = `
-                    ${m.media_type === 'image' 
+                    ${mType.includes('image')
                         ? `<img src="${m.url}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 8px;">` 
                         : `<div style="width: 100%; height: 100px; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-video"></i></div>`}
                     <div class="media-actions">
@@ -1443,15 +1521,22 @@
                     const result = await uploadResp.json();
 
                     if (replaceMediaId) {
-                        // Replace mode: delete old then save new
-                        await fetch(`${API_URL}/media/${replaceMediaId}`, {
-                            method: 'DELETE',
-                            headers: { 'Authorization': `Bearer ${token}` }
+                        // True Replace mode: Update the existing record to preserve its position/ID
+                        const patchResp = await fetch(`${API_URL}/media/${replaceMediaId}`, {
+                            method: 'PATCH',
+                            headers: { 
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                url: result.url,
+                                media_type: result.type || (file.type.startsWith('video') ? 'video' : 'image')
+                            })
                         });
+                        
+                        if (!patchResp.ok) throw new Error('Failed to update media record');
                         replaceMediaId = null;
-                    }
-
-                    if (result.url) {
+                    } else if (result.url) {
                         await saveMediaToDb({
                             media_type: result.type || (file.type.startsWith('video') ? 'video' : 'image'),
                             url: result.url,
@@ -1535,11 +1620,18 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const bookings = await response.json();
-                allBookings = bookings || [];
+
+                if (bookings && bookings.error) {
+                    console.error('API Error:', bookings.error);
+                    allBookings = [];
+                    return;
+                }
+
+                allBookings = Array.isArray(bookings) ? bookings : [];
                 
                 if (!Array.isArray(allBookings)) {
-                    console.error('Expected array for bookings, got:', allBookings);
-                    return;
+                    console.error('Expected array for bookings, got:', bookings);
+                    allBookings = [];
                 }
 
                 applyBookingFilters();

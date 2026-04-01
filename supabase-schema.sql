@@ -240,7 +240,7 @@ CREATE TABLE IF NOT EXISTS booking_requests (
   purpose_of_trip VARCHAR(255),
   visited_places TEXT,
   start_date DATE NOT NULL,
-  end_date DATE NOT NULL,
+  end_date DATE,
   total_days INT,
   mode_of_transport VARCHAR(255),
   status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'contacted', 'confirmed', 'cancelled')),

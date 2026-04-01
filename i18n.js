@@ -178,7 +178,7 @@ function updateToggleUI(lang) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const savedLang = localStorage.getItem('mrc_lang') || 'en';
+    const savedLang = localStorage.getItem('mrc_lang') || 'ta';
     applyTranslations(savedLang);
     updateToggleUI(savedLang);
 });

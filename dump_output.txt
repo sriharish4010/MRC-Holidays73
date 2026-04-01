@@ -1,0 +1,3 @@
+﻿--- Vehicles in DB ---
+{"id":"df130425-0d5e-41dd-b855-5903e29f3957","name":"MRC Van","type":"van","category":"van"}
+{"id":"7320d8ed-8887-4a0d-95fe-19f0a3d15d1f","name":"car","type":"luxury","category":"car"}

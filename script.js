@@ -111,6 +111,10 @@ const galleryData = {
    STATE MANAGEMENT
    ========================================== */
 
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000/api'
+    : 'https://mrc-holidays.onrender.com/api';
+
 const AppState = {
     currentCategory: 'bus',
     currentSlideIndex: 0,
@@ -124,12 +128,17 @@ const AppState = {
     async init() {
         this.loadTheme();
         await this.fetchData();
+        // After initial data is ready, ensure we render the first category (bus)
+        GalleryManager.renderGalleryItems();
     },
 
     async fetchData() {
         try {
-            const resp = await fetch('https://mrc-holidays.onrender.com/api/vehicles');
-            this.allVehicles = await resp.json();
+            // Include 'booked' vehicles so they appear in the showcase gallery
+            const resp = await fetch(`${API_URL}/vehicles`);
+            const vehicles = await resp.json();
+            // Filter out 'inactive' or 'maintenance' if necessary, but keep 'available' and 'booked'
+            this.allVehicles = vehicles.filter(v => v.status !== 'inactive' && v.status !== 'maintenance');
             this.updateAllItems();
         } catch (err) {
             console.error('Failed to fetch vehicles:', err);
@@ -771,24 +780,23 @@ function initializeApp() {
     try {
         syncDomReferences();
 
-        // Initialize state
-        AppState.init();
-
-        // Initialize managers
+        // Initialize independent managers in parallel for speed
         ThemeManager.init();
         NavigationManager.init();
-        GalleryManager.init();
         SliderManager.init();
         InteractiveFeatures.init();
-
-        // Initialize observers
         ScrollObserver.init();
         PerformanceMonitor.init();
+
+        // Start data initialization (async)
+        AppState.init().then(() => {
+            Utils.log('App', 'Data initialized and gallery rendered');
+        });
 
         // Set initial page title for accessibility
         document.title = 'MRC HOLIDAYS - Premium Vehicle Rental & Media Coverage';
 
-        Utils.log('App', 'Application initialized successfully');
+        Utils.log('App', 'Application components initialized successfully');
     } catch (error) {
         Utils.error('App', 'Failed to initialize application', error);
     }
