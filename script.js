@@ -136,19 +136,54 @@ const AppState = {
         try {
             // Include 'booked' vehicles so they appear in the showcase gallery
             const resp = await fetch(`${API_URL}/vehicles`);
+            if (!resp.ok) throw new Error('API error: ' + resp.status);
             const vehicles = await resp.json();
             // Filter out 'inactive' or 'maintenance' if necessary, but keep 'available' and 'booked'
             this.allVehicles = vehicles.filter(v => v.status !== 'inactive' && v.status !== 'maintenance');
             this.updateAllItems();
         } catch (err) {
-            console.error('Failed to fetch vehicles:', err);
+            console.error('Failed to fetch vehicles, injecting fallback data:', err);
+            this.loadFallbackData();
         }
     },
 
+    loadFallbackData() {
+        const fallbacks = [];
+        Object.keys(galleryData).forEach(cat => {
+            if(galleryData[cat] && galleryData[cat].length > 0) {
+                // Synthesize a vehicle object for each category that has media
+                fallbacks.push({
+                    id: 'fallback-' + cat,
+                    name: cat.toUpperCase() + ' (Demo)',
+                    type: cat,
+                    status: 'available',
+                    description: 'Premium ' + cat + ' service',
+                    vehicle_media: galleryData[cat].map(m => ({
+                        url: m.src,
+                        media_type: m.type,
+                        is_primary: false,
+                        title: m.title,
+                        description: m.description
+                    }))
+                });
+                if(fallbacks[fallbacks.length-1].vehicle_media.length > 0) {
+                    fallbacks[fallbacks.length-1].vehicle_media[0].is_primary = true;
+                }
+            }
+        });
+        this.allVehicles = fallbacks;
+        this.updateAllItems();
+    },
+
     updateAllItems() {
-        // Filter vehicles by category (handle features.category or type prefix fallback)
         this.allItems = this.allVehicles.filter(v => {
-            const cat = v.features?.category || (v.type || '').split(':')[0];
+            let cat = (v.features?.category || v.type || '').toLowerCase().split(':')[0];
+            
+            // Normalize categories to match the 3 tabs: bus, van, car
+            if (cat.includes('car') || cat === 'luxury' || cat === 'sedan' || cat === 'suv') cat = 'car';
+            else if (cat.includes('van') || cat === 'traveller' || cat.includes('urbania')) cat = 'van';
+            else if (cat.includes('bus') || cat === 'coach') cat = 'bus';
+
             return cat === this.currentCategory;
         });
         this.currentSlideIndex = 0;
@@ -419,6 +454,19 @@ const GalleryManager = {
         }
 
         DOM.galleryGrid.innerHTML = '';
+        
+        if (AppState.allItems.length === 0) {
+            const lang = localStorage.getItem('mrc_lang') || 'en';
+            const emptyMsg = lang === 'ta' ? 'இந்த பிரிவில் தற்போது வாகனங்கள் எதுவும் இல்லை.' : 'Currently no vehicles available in this category.';
+            
+            DOM.galleryGrid.innerHTML = `
+                <div class="gallery-message" style="grid-column: 1 / -1; display:flex; justify-content:center; align-items:center; min-height:300px; border-radius:var(--radius-lg); border:1px dashed var(--glass-border);">
+                    <p class="coming-soon-message" style="font-size:1.2rem; color:var(--text-secondary);"><i class="fa-solid fa-car-side" style="margin-right:10px;"></i> ${emptyMsg}</p>
+                </div>
+            `;
+            return;
+        }
+
         AppState.allItems.forEach((item, index) => {
             const card = this.createGalleryCard(item, index);
             DOM.galleryGrid.appendChild(card);
@@ -787,6 +835,7 @@ function initializeApp() {
         InteractiveFeatures.init();
         ScrollObserver.init();
         PerformanceMonitor.init();
+        GalleryManager.init();
 
         // Start data initialization (async)
         AppState.init().then(() => {
